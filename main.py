@@ -10,8 +10,6 @@ import yaml
 from data_loaders import (
     MostRecentQuestionSkillDataset,
     MostEarlyQuestionSkillDataset,
-    SimCLRDatasetWrapper,
-    MKMDatasetWrapper,
 )
 from models.akt import AKT
 from models.sakt import SAKT
