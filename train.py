@@ -12,6 +12,41 @@ if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 
+def per_epoch():
+    pass
+
+
+def per_batch_train():
+    pass
+
+# For valid loader or test loader
+
+
+def per_batch_valid_test(model, batch, loader):
+    total_preds = []
+    total_trues = []
+
+    for batch in loader:
+        model.eval()
+
+        out_dict = model(batch)
+        pred = out_dict["pred"].flatten()
+        true = out_dict["true"].flatten()
+        mask = true > -1
+        pred = pred[mask]
+        true = true[mask]
+
+        total_preds.append(pred)
+        total_trues.append(true)
+
+    total_preds = torch.cat(
+        total_preds).squeeze(-1).detach().cpu().numpy()
+    total_trues = torch.cat(
+        total_trues).squeeze(-1).detach().cpu().numpy()
+
+    return total_preds, total_trues
+
+
 def model_train(
     time_now,
     fold,
@@ -70,21 +105,8 @@ def model_train(
         total_trues = []
 
         with torch.no_grad():
-            for batch in valid_loader:
-                model.eval()
-
-                out_dict = model(batch)
-                pred = out_dict["pred"].flatten()
-                true = out_dict["true"].flatten()
-                mask = true > -1
-                pred = pred[mask]
-                true = true[mask]
-
-                total_preds.append(pred)
-                total_trues.append(true)
-
-            total_preds = torch.cat(total_preds).squeeze(-1).detach().cpu().numpy()
-            total_trues = torch.cat(total_trues).squeeze(-1).detach().cpu().numpy()
+            total_preds, total_trues = per_batch_valid_test(
+                model, batch, valid_loader)
 
         train_loss = np.average(train_losses)
         avg_train_losses.append(train_loss)
@@ -98,19 +120,22 @@ def model_train(
         if valid_auc > best_valid_auc:
 
             path = os.path.join(
-                os.path.join("saved_model", model_name, data_name, time_now), "params_*"
+                os.path.join("saved_model", model_name,
+                             data_name, time_now), "params_*"
             )
             for _path in glob.glob(path):
                 os.remove(_path)
             best_valid_auc = valid_auc
             best_epoch = i
-            dir_name = os.path.join("saved_model", model_name, data_name, time_now)
+            dir_name = os.path.join(
+                "saved_model", model_name, data_name, time_now)
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
             torch.save(
-                {"epoch": i, "model_state_dict": model.state_dict(),},
+                {"epoch": i, "model_state_dict": model.state_dict(), },
                 os.path.join(
-                    os.path.join("saved_model", model_name, data_name, time_now),
+                    os.path.join("saved_model", model_name,
+                                 data_name, time_now),
                     "params_{}".format(str(best_epoch)),
                 ),
             )
@@ -125,23 +150,8 @@ def model_train(
 
         # evaluation on test dataset
         with torch.no_grad():
-            for batch in test_loader:
-
-                model.eval()
-
-                out_dict = model(batch)
-
-                pred = out_dict["pred"].flatten()
-                true = out_dict["true"].flatten()
-                mask = true > -1
-                pred = pred[mask]
-                true = true[mask]
-
-                total_preds.append(pred)
-                total_trues.append(true)
-
-            total_preds = torch.cat(total_preds).squeeze(-1).detach().cpu().numpy()
-            total_trues = torch.cat(total_trues).squeeze(-1).detach().cpu().numpy()
+            total_preds, total_trues = per_batch_valid_test(
+                model, batch, valid_loader)
 
         test_auc = roc_auc_score(y_true=total_trues, y_score=total_preds)
 
@@ -163,22 +173,8 @@ def model_train(
     total_q_embeds, total_qr_embeds = [], []
     # evaluation on test dataset
     with torch.no_grad():
-        for batch in test_loader:
-
-            model.eval()
-
-            out_dict = model(batch)
-
-            pred = out_dict["pred"].flatten()
-            true = out_dict["true"].flatten()
-            mask = true > -1
-            pred = pred[mask]
-            true = true[mask]
-            total_preds.append(pred)
-            total_trues.append(true)
-
-        total_preds = torch.cat(total_preds).squeeze(-1).detach().cpu().numpy()
-        total_trues = torch.cat(total_trues).squeeze(-1).detach().cpu().numpy()
+        total_preds, total_trues = per_batch_valid_test(
+            model, batch, valid_loader)
 
     auc = roc_auc_score(y_true=total_trues, y_score=total_preds)
     acc = accuracy_score(y_true=total_trues >= 0.5, y_pred=total_preds >= 0.5)
