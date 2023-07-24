@@ -14,25 +14,6 @@ akt_config:
   l2: 0.0
   dropout: 0.05
   separate_qr: False
-  
-cl4kt_config:
-  hidden_size: 64
-  num_blocks: 2
-  num_attn_heads: 8
-  kq_same: True
-  final_fc_dim: 512
-  d_ff: 1024
-  l2: 0.0
-  dropout: 0.2
-  reg_cl: 0.1
-  mask_prob: 0.2
-  crop_prob: 0.3
-  permute_prob: 0.3
-  replace_prob: 0.3
-  negative_prob: 1.0
-  temp: 0.05
-  hard_negative_weight: 1.0
-
 
 train_config:
   log_wandb_fold: True
