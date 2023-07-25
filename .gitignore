@@ -400,3 +400,4 @@ FodyWeavers.xsd
 .DS_Store
 dataset/
 *.sh
+run_model.sh
