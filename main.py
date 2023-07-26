@@ -164,7 +164,7 @@ def main(config):
     params_str = f'{tm.tm_mon}{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
 
     if config.use_wandb:
-        wandb.init(project="MKT_grad", entity="skewondr")
+        wandb.init(project="CLinKT", entity="kwakjunyoung")
         wandb.run.name = params_str
         wandb.run.save()
 
