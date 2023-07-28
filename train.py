@@ -22,7 +22,7 @@ def per_batch_train():
 # For valid loader or test loader
 
 
-def per_batch_valid_test(model, batch, loader):
+def per_batch_valid_test(model, loader):
     total_preds = []
     total_trues = []
 
@@ -106,7 +106,7 @@ def model_train(
 
         with torch.no_grad():
             total_preds, total_trues = per_batch_valid_test(
-                model, batch, valid_loader)
+                model, valid_loader)
 
         train_loss = np.average(train_losses)
         avg_train_losses.append(train_loss)
