@@ -10,15 +10,12 @@ import yaml
 from data_loaders import (
     MostRecentQuestionSkillDataset,
     MostEarlyQuestionSkillDataset,
-    SimCLRDatasetWrapper,
-    MKMDatasetWrapper,
     get_diff_df,
 )
 from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
-from models.cl4kt import CL4KT
-from models.rdemkt import RDEMKT
+
 from train import model_train
 from sklearn.model_selection import KFold
 from datetime import datetime, timedelta
