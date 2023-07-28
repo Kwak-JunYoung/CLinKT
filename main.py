@@ -42,7 +42,7 @@ def main(config):
     tm = localtime(time.time())
     params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
     if config.use_wandb:
-        wandb.init(project="SIGIR", entity="skewondr")
+        wandb.init(project="CLinKT", entity="kwakjunyoung")
         wandb.run.name = params_str
         wandb.run.save()
 
