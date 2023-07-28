@@ -4,6 +4,58 @@ import torch
 from collections import defaultdict
 import numpy as np
 
+
+def get_diff_df(df, seq_len, num_skills, num_questions, total_cnt_init=1, diff_unk=0.0):
+    q_total_cnt = np.ones((num_questions+1))
+    q_crt_cnt = np.zeros((num_questions+1))
+
+    c_total_cnt = np.ones((num_skills+1))
+    c_crt_cnt = np.zeros((num_skills+1))
+    
+    if total_cnt_init == 0:
+        q_total_cnt = np.zeros((num_questions+1))
+        c_total_cnt = np.zeros((num_skills+1))
+
+    for q, c, r in zip(df["item_id"], df["skill_id"], df["correct"]):
+        c_total_cnt[c] += 1
+        if r:
+            c_crt_cnt[c] += 1
+        q_total_cnt[q] += 1
+        if r:
+            q_crt_cnt[q] += 1
+
+    if diff_unk != 0.0: ## else unk is zero
+        q_crt_cnt[np.where(q_total_cnt == total_cnt_init)] = diff_unk
+        c_crt_cnt[np.where(c_total_cnt == total_cnt_init)] = diff_unk
+
+    if total_cnt_init == 0:
+        q_total_cnt = np.where(q_total_cnt == 0, 1, q_total_cnt)
+        c_total_cnt = np.where(c_total_cnt == 0, 1, c_total_cnt)
+
+    q_diff = q_crt_cnt/q_total_cnt
+    c_diff = c_crt_cnt/c_total_cnt
+    df = df.assign(item_diff=q_diff[np.array(df["item_id"].values)])
+    df = df.assign(skill_diff=c_diff[np.array(df["skill_id"].values)])
+    
+    print("-"*80)
+    s_df = df.loc[:, ['skill_id', 'skill_diff']]
+    s_df = s_df.drop_duplicates(subset=["skill_id"]).sort_values(by='skill_id')
+    q_df = df.loc[:, ['item_id', 'item_diff']]
+    q_df = q_df.drop_duplicates(subset=["item_id"]).sort_values(by='item_id')
+
+    responses = [
+        u_df["correct"].values[-seq_len :]
+        for _, u_df in df.groupby("user_id")
+    ]
+    
+    print(f"mean of total set, skill correct ratio:{np.mean(s_df['skill_diff']*100):.2f}")
+    print(f"mean of total set, question correct ratio:{np.mean(q_df['item_diff']*100):.2f}")
+    print(f"mean of total set, class 0 ratio:{sum(list(x).count(0) for x in responses)/sum(len(x) for x in responses):.2f}")
+    print(f"mean of total set, class 1 ratio:{sum(list(x).count(1) for x in responses)/sum(len(x) for x in responses):.2f}")
+    print("-"*80)
+
+    return df
+
 class MostRecentQuestionSkillDataset(Dataset):
     def __init__(self, df, seq_len, num_skills, num_questions):
         self.df = df
