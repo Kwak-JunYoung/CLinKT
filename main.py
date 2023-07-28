@@ -127,6 +127,8 @@ def get_data_loader(model_name, accelerator, train_dataset, valid_dataset, test_
         DataLoader(test_dataset, batch_size=eval_batch_size)
     )
 
+    return train_loader, valid_loader, test_loader
+
 def get_datasets(users, train_ids, test_ids, df, num_skills, num_questions, seq_len, dataset, config):
     train_users = users[train_ids]
     np.random.shuffle(train_users)
