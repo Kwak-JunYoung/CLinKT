@@ -51,7 +51,7 @@ def get_dataset(sequence_option):
         raise NotImplementedError("sequence option is not valid")
 
 # Get model and its configuration
-def get_model_info(config, train_config, device, num_questions):
+def get_model_info(config, train_config, device, num_questions, num_skills):
     model_name = config.model_name
     data_name = config.data_name
 
@@ -222,7 +222,7 @@ def main(config):
 
         # Get model information
         model_config, model = get_model_info(
-            config, train_config, device, num_questions)
+            config, train_config, device, num_questions, num_skills)
         if model_name == "akt" and data_name in ["statics", "assistments15"]:
             num_questions = 0
         
