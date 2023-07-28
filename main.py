@@ -55,7 +55,6 @@ def get_model_info(config, train_config, device, num_questions, num_skills):
     model_name = config.model_name
     data_name = config.data_name
 
-    num_skills = train_config.num_skills
     seq_len = train_config.seq_len
 
     if model_name == "akt":
