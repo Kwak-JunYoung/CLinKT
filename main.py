@@ -128,10 +128,11 @@ def get_data_loader(model_name, accelerator, train_dataset, valid_dataset, test_
     )
 
 def get_datasets(users, train_ids, test_ids, df, num_skills, num_questions, seq_len, dataset, config):
+    train_users = users[train_ids]
     np.random.shuffle(train_users)
     offset = int(len(train_ids) * 0.9)
 
-    train_users = train_users[train_ids][:offset]
+    train_users = train_users[:offset]
     valid_users = train_users[offset:]
     test_users = users[test_ids]
 
