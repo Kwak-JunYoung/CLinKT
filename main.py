@@ -414,9 +414,6 @@ if __name__ == "__main__":
     
     parser.add_argument("--total_cnt_init", type=int, default=0, help="total_cnt_init")
     parser.add_argument("--diff_unk", type=float, default=0.5, help="diff_unk")
-    
-    parser.add_argument("--gpu_num", type=int, required=True, help="gpu number")
-    parser.add_argument("--server_num", type=int, required=True, help="server number")
 
     parser.add_argument("--diff_as_loss_weight", action="store_true", default=False, help="diff_as_loss_weight")
     parser.add_argument("--valid_balanced", action="store_true", default=False, help="valid_balanced")
@@ -436,8 +433,7 @@ if __name__ == "__main__":
     cfg.train_config.describe = args.describe
     cfg.train_config.sparsity = args.sparsity
     cfg.train_config.balanced = args.balanced
-    cfg.train_config.gpu_num = args.gpu_num
-    cfg.train_config.server_num = args.server_num
+
     cfg.train_config.diff_as_loss_weight = args.diff_as_loss_weight
     cfg.train_config.valid_balanced = args.valid_balanced
     cfg.train_config.seed = args.seed
@@ -447,29 +443,10 @@ if __name__ == "__main__":
     
     assert args.de_type.split('_')[0] in ["sde", "lsde", "rde", "lrde", "none"], "de_type error! not in [sde, lsde, rde, lrde, none]"
 
-    if args.model_name == "cl4kt":
-        cfg.cl4kt_config = cfg.cl4kt_config[cfg.data_name]
-        cfg.cl4kt_config.only_rp = args.only_rp
-        cfg.cl4kt_config.choose_cl = args.choose_cl
-        # cfg.cl4kt_config.reg_cl = args.reg_cl
-        # cfg.cl4kt_config.mask_prob = args.mask_prob
-        # cfg.cl4kt_config.crop_prob = args.crop_prob
-        # cfg.cl4kt_config.permute_prob = args.permute_prob
-        # cfg.cl4kt_config.replace_prob = args.replace_prob
-        # cfg.cl4kt_config.negative_prob = args.negative_prob
-        # cfg.cl4kt_config.dropout = args.dropout
-        # cfg.cl4kt_config.l2 = args.l2
-    elif args.model_name == "akt":
+    if args.model_name == "akt":
         cfg.akt_config = cfg.akt_config[cfg.data_name]
     #     cfg.akt_config.l2 = args.l2
     #     cfg.akt_config.dropout = args.dropout
-    elif args.model_name == "rdemkt":
-        cfg.rdemkt_config = cfg.rdemkt_config[cfg.data_name]
-        cfg.rdemkt_config.only_rp = args.only_rp
-        # cfg.mkt_config.choose_cl = args.choose_cl
-        # cfg.mkt_config.inter_lambda = args.inter_lambda
-        # cfg.mkt_config.ques_lambda = args.ques_lambda
-        # cfg.mkt_config.mask_prob = args.mask_prob
         
     cfg[f"{args.model_name}_config"].de_type =  args.de_type
     
