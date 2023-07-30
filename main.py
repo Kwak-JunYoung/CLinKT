@@ -15,6 +15,7 @@ from data_loaders import (
 from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
+from models.clsakt import CLSAKT
 
 from train import model_train
 from sklearn.model_selection import KFold
@@ -123,6 +124,9 @@ def main(config):
         elif args.model_name == "saint":
             model_config = config.saint_config
             model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
+        elif args.model_name == "clsakt":
+            model_config = config.clsakt_config
+            model = CLSAKT(device, num_skills, num_questions, seq_len, **model_config)
 
         dir_name = os.path.join("saved_model", model_name, data_name, params_str)
         if not os.path.exists(dir_name):
