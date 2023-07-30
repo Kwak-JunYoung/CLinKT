@@ -117,24 +117,12 @@ def main(config):
             if data_name in ["statics", "assistments15"]:
                 num_questions = 0
             model = AKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
-        elif model_name == "cl4kt":
-            model_config = config.cl4kt_config
-            model = CL4KT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
-            mask_prob = model_config.mask_prob
-            crop_prob = model_config.crop_prob
-            permute_prob = model_config.permute_prob
-            replace_prob = model_config.replace_prob
-            negative_prob = model_config.negative_prob
         elif args.model_name == "sakt":
             model_config = config.sakt_config
             model = SAKT(device, num_skills, num_questions, seq_len, **model_config)
         elif args.model_name == "saint":
             model_config = config.saint_config
             model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
-        elif model_name == "rdemkt":
-            model_config = config.rdemkt_config
-            model = RDEMKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
-            mask_prob = model_config.mask_prob
 
         dir_name = os.path.join("saved_model", model_name, data_name, params_str)
         if not os.path.exists(dir_name):
@@ -181,85 +169,17 @@ def main(config):
         print(train_config)
         print(model_config)
 
-        if model_name == "cl4kt":   
-            train_loader = accelerator.prepare(
-                DataLoader(
-                    SimCLRDatasetWrapper(
-                        train_dataset,
-                        seq_len,
-                        mask_prob,
-                        crop_prob,
-                        permute_prob,
-                        replace_prob,
-                        negative_prob,
-                        eval_mode=False,
-                    ),
-                    batch_size=batch_size,
-                )
-            )
+        train_loader = accelerator.prepare(
+            DataLoader(train_dataset, batch_size=batch_size)
+        )
 
-            valid_loader = accelerator.prepare(
-                DataLoader(
-                    SimCLRDatasetWrapper(
-                        valid_dataset, seq_len, 0, 0, 0, 0, 0, eval_mode=True
-                    ),
-                    batch_size=eval_batch_size,
-                )
-            )
+        valid_loader = accelerator.prepare(
+            DataLoader(valid_dataset, batch_size=eval_batch_size)
+        )
 
-            test_loader = accelerator.prepare(
-                DataLoader(
-                    SimCLRDatasetWrapper(
-                        test_dataset, seq_len, 0, 0, 0, 0, 0, eval_mode=True
-                    ),
-                    batch_size=eval_batch_size,
-                )
-            )
-
-        elif model_name == "rdemkt":   
-            train_loader = accelerator.prepare(
-                DataLoader(
-                    MKMDatasetWrapper(
-                        diff_order,
-                        train_dataset,
-                        seq_len,
-                        mask_prob,
-                        eval_mode=False,
-                    ),
-                    batch_size=batch_size,
-                )
-            )
-
-            valid_loader = accelerator.prepare(
-                DataLoader(
-                    MKMDatasetWrapper(
-                        diff_order, valid_dataset, seq_len, 0, eval_mode=True
-                    ),
-                    batch_size=eval_batch_size,
-                )
-            )
-
-            test_loader = accelerator.prepare(
-                DataLoader(
-                    MKMDatasetWrapper(
-                        diff_order, test_dataset, seq_len, 0, eval_mode=True
-                    ),
-                    batch_size=eval_batch_size,
-                )
-            )
-
-        else:
-            train_loader = accelerator.prepare(
-                DataLoader(train_dataset, batch_size=batch_size)
-            )
-
-            valid_loader = accelerator.prepare(
-                DataLoader(valid_dataset, batch_size=eval_batch_size)
-            )
-
-            test_loader = accelerator.prepare(
-                DataLoader(test_dataset, batch_size=eval_batch_size)
-            )
+        test_loader = accelerator.prepare(
+            DataLoader(test_dataset, batch_size=eval_batch_size)
+        )
 
         n_gpu = torch.cuda.device_count()
         if n_gpu > 1:
@@ -340,15 +260,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name",
         type=str,
-        default="cl4kt",
+        default="sakt",
         help="The name of the model to train. \
             The possible models are in [akt, cl4kt]. \
-            The default model is cl4kt.",
+            The default model is sakt.",
     )
     parser.add_argument(
         "--data_name",
         type=str,
-        default="algebra05",
+        default="ednet",
         help="The name of the dataset to use in training.",
     )
     parser.add_argument(
