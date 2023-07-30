@@ -40,8 +40,13 @@ def set_seed(seed: int):
     
 def main(config):
 
+    model_name = config.model_name
+    dataset_path = config.dataset_path
+    data_name = config.data_name
+    seed = config.seed
+
     tm = localtime(time.time())
-    params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
+    params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}:{model_name}:{data_name}'
     if config.use_wandb:
         wandb.init(project="CLinKT", entity="kwakjunyoung")
         wandb.run.name = params_str
@@ -49,11 +54,6 @@ def main(config):
 
     accelerator = Accelerator()
     device = accelerator.device
-
-    model_name = config.model_name
-    dataset_path = config.dataset_path
-    data_name = config.data_name
-    seed = config.seed
 
     np.random.seed(seed)
     torch.manual_seed(seed)
