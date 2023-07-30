@@ -97,7 +97,8 @@ class AKTTransformerLayer(Module):
         As a result, the upper triangular elements are masked
         row: target, col: source
         """
-        device = query.get_device()
+        # device = query.get_device()
+        device = query.device
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype("uint8")
 
