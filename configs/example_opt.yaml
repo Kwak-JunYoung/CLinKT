@@ -64,6 +64,12 @@ akt_config:
     reg_l: 10
     separate_qr: False
 
+clsakt_config:
+  embedding_size: 64
+  num_blocks: 1
+  num_attn_heads: 8
+  dropout: 0.5
+
 train_config:
   l2: 0.0
   log_wandb_fold: True
