@@ -59,6 +59,8 @@ def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weig
     elif args.model_name == "clsaint":
         model_config = config.clsaint_config
         model = CLSAINT(device, num_skills, num_questions, seq_len, **model_config)
+    else: 
+        raise NotImplementedError("model name is not valid")
     return model_config, model
 
 def create_ckpt_dir(checkpoint_dir, model_name, data_name):
