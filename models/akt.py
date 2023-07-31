@@ -61,7 +61,8 @@ class AKT(Module):
         self.dropout = dropout
         self.separate_qr = separate_qr
         self.diff_as_loss_weight = diff_as_loss_weight
-
+        self.device_info = device
+        print("device_info", device)
         if self.num_questions > 0:
             self.difficult_param = Embedding(
                 self.num_questions, 1, padding_idx=0
@@ -106,7 +107,8 @@ class AKT(Module):
             kq_same=self.kq_same,
             model_type=self.model_type,
             de=self.de,
-            rotary=rotary
+            rotary=rotary,
+            device_info=self.device_info
         )
 
         self.out = Sequential(
@@ -255,7 +257,8 @@ class Architecture(Module):
         kq_same,
         model_type,
         de="none",
-        rotary="none"
+        rotary="none",
+        device_info
     ):
         super().__init__()
         """

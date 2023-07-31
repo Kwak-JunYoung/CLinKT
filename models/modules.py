@@ -98,9 +98,6 @@ class AKTTransformerLayer(Module):
         row: target, col: source
         """
         device = query.get_device()
-        print("get_device:", device)
-        device = query.device
-        print(".device:", device)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype("uint8")
 
@@ -245,9 +242,6 @@ def monotonic_attention(q, k, v, d_k, mask, dropout, gamma=None):
                     [4, 3, 2, 1, 0]])
         """
         device = distcum_scores.get_device()
-        print("get_device:", device)
-        device = distcum_scores.device
-        print(".device:", device)
         position_effect = torch.abs(x1 - x2)[None, None, :, :].type(
             torch.FloatTensor
         )  # [1, 1, seqlen, seqlen]
