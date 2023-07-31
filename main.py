@@ -12,7 +12,7 @@ from data_loaders import (
     MostEarlyQuestionSkillDataset,
     get_diff_df,
 )
-# from models.akt import AKT
+from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
 from models.clsakt import CLSAKT
