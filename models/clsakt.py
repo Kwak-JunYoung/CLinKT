@@ -74,8 +74,9 @@ class CLSAKT(SAKT):
         out_dict = {
             "pred": p,
             "true": feed_dict["responses"][:, 1:].float(),
+            "contrastive_loss": contrastive_loss,
         }
-        return out_dict, contrastive_loss
+        return out_dict
 
     def loss(self, feed_dict, out_dict):
         pred = out_dict["pred"].flatten()
