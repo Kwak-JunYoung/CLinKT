@@ -67,7 +67,7 @@ def create_ckpt_dir(checkpoint_dir, model_name, data_name):
     if not os.path.isdir(checkpoint_dir):
         os.mkdir(checkpoint_dir)
 
-    ckpt_path = os.path.join(ckpt_path, model_name)
+    ckpt_path = os.path.join(checkpoint_dir, model_name)
     if not os.path.isdir(ckpt_path):
         os.mkdir(ckpt_path)
 
@@ -112,7 +112,7 @@ def main(config):
     seed = train_config.seed
     set_seed(seed)
 
-    create_ckpt_dir(checkpoint_dir, model_name, data_name)
+    ckpt_path = create_ckpt_dir(checkpoint_dir, model_name, data_name)
 
     if train_config.sequence_option == "recent":  # the most recent N interactions
         dataset = MostRecentQuestionSkillDataset
