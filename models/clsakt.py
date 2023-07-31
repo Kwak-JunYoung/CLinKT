@@ -16,7 +16,7 @@ from .contrastiveLoss import ContrastiveLoss
 
 class CLSAKT(SAKT):
     def __init__(self, *args, **kwargs):
-        super(SAKTContrastive, self).__init__(*args, **kwargs)
+        super(CLSAKT, self).__init__(*args, **kwargs)
         self.contrastive_loss = ContrastiveLoss()
 
     def base_emb(self, q, r, qry, pos, diff):
