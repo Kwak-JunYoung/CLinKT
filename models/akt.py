@@ -62,7 +62,6 @@ class AKT(Module):
         self.separate_qr = separate_qr
         self.diff_as_loss_weight = diff_as_loss_weight
         self.device_info = device
-        print("device_info", device)
         if self.num_questions > 0:
             self.difficult_param = Embedding(
                 self.num_questions, 1, padding_idx=0
@@ -258,7 +257,7 @@ class Architecture(Module):
         model_type,
         de="none",
         rotary="none",
-        device_info
+        device_info="cpu"
     ):
         super().__init__()
         """
