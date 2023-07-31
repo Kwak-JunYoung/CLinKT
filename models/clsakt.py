@@ -70,6 +70,7 @@ class CLSAKT(SAKT):
         contrastive_loss = self.contrastive_loss(similarity, labels)
 
         p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)
+        print("p", p.shape)
         out_dict = {
             "pred": p,
             "true": feed_dict["responses"][:, 1:].float(),
