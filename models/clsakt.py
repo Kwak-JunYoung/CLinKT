@@ -15,56 +15,9 @@ from .sakt import SAKT
 from .contrastiveLoss import ContrastiveLoss
 
 class CLSAKT(SAKT):
-    def __init__(
-        self, 
-        device, 
-        num_skills,
-        num_questions, 
-        seq_len, 
-        embedding_size, 
-        num_attn_heads, 
-        dropout, 
-        de_type="none",
-        num_blocks=2, 
-        emb_path="", 
-        pretrain_dim=768
-        ):
-        super().__init__()
-        self.device = device 
-
-        self.num_questions = num_questions
-        self.num_skills = num_skills
-        self.seq_len = seq_len
-        self.embedding_size = embedding_size
-        self.num_attn_heads = num_attn_heads
-        self.dropout = dropout
-        self.num_blocks = num_blocks
-        self.loss_fn = BCELoss(reduction="mean")
+    def __init__(self, *args, **kwargs):
+        super(SAKTContrastive, self).__init__(*args, **kwargs)
         self.contrastive_loss = ContrastiveLoss()
-
-        # num_questions, seq_len, embedding_size, num_attn_heads, dropout, emb_path="")
-        self.interaction_emb = Embedding(num_skills * 2, embedding_size, padding_idx=0)
-        self.exercise_emb = Embedding(num_skills, embedding_size, padding_idx=0)
-        # self.P = Parameter(torch.Tensor(self.seq_len, self.embedding_size))
-        self.position_emb = Embedding(seq_len + 1, embedding_size, padding_idx=0)
-
-        self.de = de_type.split('_')[0]
-        assert self.de not in ["lsde", "lrde"], "de_type error! should not in [lsde, lrde]"
-        self.token_num = int(de_type.split('_')[1])
-        
-        if self.de in ["sde"]:
-            diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(2*(self.token_num+1), embedding_size)).to(device)
-            self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
-            rotary = "none"
-        elif self.de in ["rde"]:
-            rotary = "kv"
-        else: 
-            rotary = "none"
-
-        self.blocks = get_clones(Blocks(device, embedding_size, num_attn_heads, dropout, rotary), self.num_blocks)
-
-        self.dropout_layer = Dropout(dropout)
-        self.pred = Linear(self.embedding_size, 1)
 
     def base_emb(self, q, r, qry, pos, diff):
         masked_responses = r * (r > -1).long()
