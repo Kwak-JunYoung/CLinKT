@@ -82,7 +82,9 @@ class CLSAKT(SAKT):
         pred = out_dict["pred"].flatten()
         true = out_dict["true"].flatten()
         mask = true > -1
-        loss = self.loss_fn(pred[mask], true[mask])
+        loss_before = self.loss_fn(pred[mask], true[mask])
+        contrastive_loss = out_dict["contrastive_loss"]
+        loss = contrastive_loss # + loss_before
         return loss , len(pred[mask]), true[mask].sum().item()
 
 class Blocks(Module):
