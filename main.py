@@ -15,7 +15,9 @@ from data_loaders import (
 from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
+from models.akt import CLAKT
 from models.clsakt import CLSAKT
+from models.clsaint import CLSAINT
 
 from train import model_train
 from sklearn.model_selection import KFold
@@ -37,13 +39,46 @@ def set_seed(seed: int):
     np.random.seed(seed)
 
     torch.backends.cudnn.deterministic = True
-    
+
+def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weight, config, model_name):
+    if model_name == "akt":
+        model_config = config.akt_config
+        model = AKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
+    elif args.model_name == "sakt":
+        model_config = config.sakt_config
+        model = SAKT(device, num_skills, num_questions, seq_len, **model_config)
+    elif args.model_name == "saint":
+        model_config = config.saint_config
+        model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
+    elif args.model_name == "clakt":
+        model_config = config.clakt_config 
+        model = CLAKT(device, num_skills, num_questions, seq_len, **model_config)
+    elif args.model_name == "clsakt":
+        model_config = config.clsakt_config
+        model = CLSAKT(device, num_skills, num_questions, seq_len, **model_config)
+    elif args.model_name == "clsaint":
+        model_config = config.clsaint_config
+        model = CLSAINT(device, num_skills, num_questions, seq_len, **model_config)
+    return model_config, model
+
 def main(config):
 
     model_name = config.model_name
     dataset_path = config.dataset_path
     data_name = config.data_name
     seed = config.seed
+    train_config = config.train_config
+    checkpoint_dir = config.checkpoint_dir
+
+    batch_size = train_config.batch_size
+    eval_batch_size = train_config.eval_batch_size
+    learning_rate = train_config.learning_rate
+    optimizer = train_config.optimizer
+    seq_len = train_config.seq_len
+    diff_order = train_config.diff_order
+    sparsity = train_config.sparsity
+    balanced = train_config.balanced
+    diff_as_loss_weight = train_config.diff_as_loss_weight
 
     tm = localtime(time.time())
     params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
@@ -58,9 +93,6 @@ def main(config):
     torch.manual_seed(seed)
 
     df_path = os.path.join(os.path.join(dataset_path, data_name), "preprocessed_df.csv")
-
-    train_config = config.train_config
-    checkpoint_dir = config.checkpoint_dir
     
     seed = train_config.seed
     set_seed(seed)
@@ -75,16 +107,6 @@ def main(config):
     ckpt_path = os.path.join(ckpt_path, data_name)
     if not os.path.isdir(ckpt_path):
         os.mkdir(ckpt_path)
-
-    batch_size = train_config.batch_size
-    eval_batch_size = train_config.eval_batch_size
-    learning_rate = train_config.learning_rate
-    optimizer = train_config.optimizer
-    seq_len = train_config.seq_len
-    diff_order = train_config.diff_order
-    sparsity = train_config.sparsity
-    balanced = train_config.balanced
-    diff_as_loss_weight = train_config.diff_as_loss_weight
 
     if train_config.sequence_option == "recent":  # the most recent N interactions
         dataset = MostRecentQuestionSkillDataset
@@ -112,20 +134,10 @@ def main(config):
     print(dataset)
     for fold, (train_ids, test_ids) in enumerate(kfold.split(users)):
         # if fold > 1 : break
-        if model_name == "akt":
-            model_config = config.akt_config
-            if data_name in ["statics", "assistments15"]:
-                num_questions = 0
-            model = AKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
-        elif args.model_name == "sakt":
-            model_config = config.sakt_config
-            model = SAKT(device, num_skills, num_questions, seq_len, **model_config)
-        elif args.model_name == "saint":
-            model_config = config.saint_config
-            model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
-        elif args.model_name == "clsakt":
-            model_config = config.clsakt_config
-            model = CLSAKT(device, num_skills, num_questions, seq_len, **model_config)
+        if model_name in ["akt", "clakt"] and data_name in ["statics", "assistments15"]:
+            num_questions = 0
+        
+        model_config, model = get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weight, config, model_name)
 
         dir_name = os.path.join("saved_model", model_name, data_name, params_str)
         if not os.path.exists(dir_name):
