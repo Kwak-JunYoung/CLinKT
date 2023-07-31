@@ -15,9 +15,9 @@ from data_loaders import (
 from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
-from models.akt import CLAKT
+# from models.akt import CLAKT
 from models.clsakt import CLSAKT
-from models.clsaint import CLSAINT
+# from models.clsaint import CLSAINT
 
 from train import model_train
 from sklearn.model_selection import KFold
