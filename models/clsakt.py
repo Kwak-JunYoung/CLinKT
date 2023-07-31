@@ -11,10 +11,10 @@ from IPython import embed
 
 import torch.nn.functional as F
 from torch.nn import CosineSimilarity
-
+from .sakt import SAKT
 from .contrastiveLoss import ContrastiveLoss
 
-class CLSAKT(Module):
+class CLSAKT(SAKT):
     def __init__(
         self, 
         device, 
