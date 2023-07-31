@@ -61,6 +61,19 @@ def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weig
         model = CLSAINT(device, num_skills, num_questions, seq_len, **model_config)
     return model_config, model
 
+def create_ckpt_dir(checkpoint_dir, model_name, data_name):
+    if not os.path.isdir(checkpoint_dir):
+        os.mkdir(checkpoint_dir)
+
+    ckpt_path = os.path.join(ckpt_path, model_name)
+    if not os.path.isdir(ckpt_path):
+        os.mkdir(ckpt_path)
+
+    ckpt_path = os.path.join(ckpt_path, data_name)
+    if not os.path.isdir(ckpt_path):
+        os.mkdir(ckpt_path)
+    return ckpt_path
+
 def main(config):
 
     model_name = config.model_name
@@ -97,16 +110,7 @@ def main(config):
     seed = train_config.seed
     set_seed(seed)
 
-    if not os.path.isdir(checkpoint_dir):
-        os.mkdir(checkpoint_dir)
-
-    ckpt_path = os.path.join(checkpoint_dir, model_name)
-    if not os.path.isdir(ckpt_path):
-        os.mkdir(ckpt_path)
-
-    ckpt_path = os.path.join(ckpt_path, data_name)
-    if not os.path.isdir(ckpt_path):
-        os.mkdir(ckpt_path)
+    create_ckpt_dir(checkpoint_dir, model_name, data_name)
 
     if train_config.sequence_option == "recent":  # the most recent N interactions
         dataset = MostRecentQuestionSkillDataset
