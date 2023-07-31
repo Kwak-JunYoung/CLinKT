@@ -54,7 +54,7 @@ def main(config):
 
     accelerator = Accelerator()
     device = accelerator.device
-
+    print(device)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
