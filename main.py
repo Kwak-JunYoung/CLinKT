@@ -10,15 +10,16 @@ import yaml
 from data_loaders import (
     MostRecentQuestionSkillDataset,
     MostEarlyQuestionSkillDataset,
+    SimCLRDatasetWrapper,
+    MKMDatasetWrapper,
     get_diff_df,
 )
 from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
-# from models.akt import CLAKT
 from models.clsakt import CLSAKT
-# from models.clsaint import CLSAINT
-
+# from models.cl4kt import CL4KT
+# from models.rdemkt import RDEMKT
 from train import model_train
 from sklearn.model_selection import KFold
 from datetime import datetime, timedelta
@@ -50,15 +51,15 @@ def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weig
     elif args.model_name == "saint":
         model_config = config.saint_config
         model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
-    elif args.model_name == "clakt":
-        model_config = config.clakt_config 
-        model = CLAKT(device, num_skills, num_questions, seq_len, **model_config)
+    # elif args.model_name == "clakt":
+    #     model_config = config.clakt_config 
+    #     model = CLAKT(device, num_skills, num_questions, seq_len, **model_config)
     elif args.model_name == "clsakt":
         model_config = config.clsakt_config
         model = CLSAKT(device, num_skills, num_questions, seq_len, **model_config)
-    elif args.model_name == "clsaint":
-        model_config = config.clsaint_config
-        model = CLSAINT(device, num_skills, num_questions, seq_len, **model_config)
+    # elif args.model_name == "clsaint":
+    #     model_config = config.clsaint_config
+    #     model = CLSAINT(device, num_skills, num_questions, seq_len, **model_config)
     else: 
         raise NotImplementedError("model name is not valid")
     return model_config, model
@@ -76,24 +77,112 @@ def create_ckpt_dir(checkpoint_dir, model_name, data_name):
         os.mkdir(ckpt_path)
     return ckpt_path
 
-def main(config):
+def get_data_loaders(accelerator, train_dataset, valid_dataset, test_dataset, config, train_config, model_config):
+        model_name = config.model_name
+        seq_len = train_config.seq_len
+        batch_size = train_config.batch_size
+        eval_batch_size = train_config.eval_batch_size
 
+        if "cl" in model_name:  # contrastive learning
+            mask_prob = model_config.mask_prob
+            crop_prob = model_config.crop_prob
+            permute_prob = model_config.permute_prob
+            replace_prob = model_config.replace_prob
+            negative_prob = model_config.negative_prob
+
+            train_loader = accelerator.prepare(
+                DataLoader(
+                    SimCLRDatasetWrapper(
+                        train_dataset,
+                        seq_len,
+                        mask_prob,
+                        crop_prob,
+                        permute_prob,
+                        replace_prob,
+                        negative_prob,
+                        eval_mode=False,
+                    ),
+                    batch_size=batch_size,
+                )
+            )
+
+            valid_loader = accelerator.prepare(
+                DataLoader(
+                    SimCLRDatasetWrapper(
+                        valid_dataset, seq_len, 0, 0, 0, 0, 0, eval_mode=True
+                    ),
+                    batch_size=eval_batch_size,
+                )
+            )
+
+            test_loader = accelerator.prepare(
+                DataLoader(
+                    SimCLRDatasetWrapper(
+                        test_dataset, seq_len, 0, 0, 0, 0, 0, eval_mode=True
+                    ),
+                    batch_size=eval_batch_size,
+                )
+            )
+        else:
+            train_loader = accelerator.prepare(
+                DataLoader(train_dataset, batch_size=batch_size)
+            )
+
+            valid_loader = accelerator.prepare(
+                DataLoader(valid_dataset, batch_size=eval_batch_size)
+            )
+
+            test_loader = accelerator.prepare(
+                DataLoader(test_dataset, batch_size=eval_batch_size)
+            )
+
+        return train_loader, valid_loader, test_loader
+
+def get_print_args(test_aucs, test_accs, test_rmses, test_aucs_balanced, test_accs_balanced, test_rmses_balanced, config, train_config, model_config):
     model_name = config.model_name
-    dataset_path = config.dataset_path
     data_name = config.data_name
-    seed = config.seed
-    train_config = config.train_config
-    checkpoint_dir = config.checkpoint_dir
 
-    batch_size = train_config.batch_size
-    eval_batch_size = train_config.eval_batch_size
-    learning_rate = train_config.learning_rate
-    optimizer = train_config.optimizer
-    seq_len = train_config.seq_len
-    diff_order = train_config.diff_order
-    sparsity = train_config.sparsity
-    balanced = train_config.balanced
-    diff_as_loss_weight = train_config.diff_as_loss_weight
+    test_auc = np.mean(test_aucs)
+    test_auc_std = np.std(test_aucs)
+    test_acc = np.mean(test_accs)
+    test_acc_std = np.std(test_accs)
+    test_rmse = np.mean(test_rmses)
+    test_rmse_std = np.std(test_rmses)
+
+    test_auc_balanced = np.mean(test_aucs_balanced)
+    test_aucb_std = np.std(test_aucs_balanced)
+    test_acc_balanced = np.mean(test_accs_balanced)
+    test_accb_std = np.std(test_accs_balanced)
+    test_rmse_balanced = np.mean(test_rmses_balanced)
+    test_rmseb_std = np.std(test_rmses_balanced)
+    
+    print("\n5-fold CV Result")
+    print("AUC\tACC\tRMSE")
+    print("{:.5f}\t{:.5f}\t{:.5f}".format(test_auc, test_acc, test_rmse))
+    
+    print_args = dict()
+    print_args["auc"] = round(test_auc, 4)
+    print_args["auc_std"] = round(test_auc_std, 4)
+    print_args["acc"] = round(test_acc, 4)
+    print_args["acc_std"] = round(test_acc_std, 4)
+    print_args["rmse"] = round(test_rmse, 4)
+    print_args["rmse_std"] = round(test_rmse_std, 4)
+
+    print_args['auc_balanced'] = round(test_auc_balanced, 4)
+    print_args["auc_b_std"] = round(test_aucb_std, 4)
+    print_args['acc_balanced'] = round(test_acc_balanced, 4)
+    print_args["acc_b_std"] = round(test_accb_std, 4)
+    print_args['rmse_balanced'] = round(test_rmse_balanced, 4)
+    print_args["rmse_b_std"] = round(test_rmseb_std, 4)
+
+    print_args['Model'] = model_name 
+    print_args['Dataset'] = data_name 
+    print_args.update(train_config)
+    print_args.update(model_config)
+
+    return print_args
+
+def main(config):
 
     tm = localtime(time.time())
     params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
@@ -104,15 +193,31 @@ def main(config):
 
     accelerator = Accelerator()
     device = accelerator.device
+
+    model_name = config.model_name
+    dataset_path = config.dataset_path
+    data_name = config.data_name
+    seed = config.seed
+
     np.random.seed(seed)
     torch.manual_seed(seed)
 
     df_path = os.path.join(os.path.join(dataset_path, data_name), "preprocessed_df.csv")
+
+    train_config = config.train_config
+    checkpoint_dir = config.checkpoint_dir
     
     seed = train_config.seed
     set_seed(seed)
 
-    ckpt_path = create_ckpt_dir(checkpoint_dir, model_name, data_name)
+    create_ckpt_dir(checkpoint_dir, model_name, data_name)
+
+    learning_rate = train_config.learning_rate
+    optimizer = train_config.optimizer
+    seq_len = train_config.seq_len
+    sparsity = train_config.sparsity
+    balanced = train_config.balanced
+    diff_as_loss_weight = train_config.diff_as_loss_weight
 
     if train_config.sequence_option == "recent":  # the most recent N interactions
         dataset = MostRecentQuestionSkillDataset
@@ -140,10 +245,9 @@ def main(config):
     print(dataset)
     for fold, (train_ids, test_ids) in enumerate(kfold.split(users)):
         # if fold > 1 : break
-        if model_name in ["akt", "clakt"] and data_name in ["statics", "assistments15"]:
-            num_questions = 0
-        
         model_config, model = get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weight, config, model_name)
+        if model_name == "akt" and data_name in ["statics", "assistments15"]:
+            num_questions = 0
 
         dir_name = os.path.join("saved_model", model_name, data_name, params_str)
         if not os.path.exists(dir_name):
@@ -161,6 +265,7 @@ def main(config):
         test_users = users[test_ids]
 
         df = get_diff_df(df, seq_len, num_skills, num_questions, total_cnt_init=config.total_cnt_init, diff_unk=config.diff_unk)
+
         train_df = df[df["user_id"].isin(train_users)]
         valid_df = df[df["user_id"].isin(valid_users)]
         test_df = df[df["user_id"].isin(test_users)]
@@ -190,17 +295,7 @@ def main(config):
         print(train_config)
         print(model_config)
 
-        train_loader = accelerator.prepare(
-            DataLoader(train_dataset, batch_size=batch_size)
-        )
-
-        valid_loader = accelerator.prepare(
-            DataLoader(valid_dataset, batch_size=eval_batch_size)
-        )
-
-        test_loader = accelerator.prepare(
-            DataLoader(test_dataset, batch_size=eval_batch_size)
-        )
+        train_loader, valid_loader, test_loader = get_data_loaders(accelerator, train_dataset, valid_dataset, test_dataset, config, train_config, model_config)
 
         n_gpu = torch.cuda.device_count()
         if n_gpu > 1:
@@ -236,44 +331,9 @@ def main(config):
         test_accs_balanced.append(t1[4])
         test_rmses_balanced.append(t1[5])
 
-    test_auc = np.mean(test_aucs)
-    test_auc_std = np.std(test_aucs)
-    test_acc = np.mean(test_accs)
-    test_acc_std = np.std(test_accs)
-    test_rmse = np.mean(test_rmses)
-    test_rmse_std = np.std(test_rmses)
+    print_args = get_print_args(test_aucs, test_accs, test_rmses, test_aucs_balanced, test_accs_balanced, test_rmses_balanced, config, train_config, model_config)
 
-    test_auc_balanced = np.mean(test_aucs_balanced)
-    test_aucb_std = np.std(test_aucs_balanced)
-    test_acc_balanced = np.mean(test_accs_balanced)
-    test_accb_std = np.std(test_accs_balanced)
-    test_rmse_balanced = np.mean(test_rmses_balanced)
-    test_rmseb_std = np.std(test_rmses_balanced)
-    
-    print("\n5-fold CV Result")
-    print("AUC\tACC\tRMSE")
-    print("{:.5f}\t{:.5f}\t{:.5f}".format(test_auc, test_acc, test_rmse))
-    
-    print_args = dict()
-    print_args["auc"] = round(test_auc, 4)
-    print_args["auc_std"] = round(test_auc_std, 4)
-    print_args["acc"] = round(test_acc, 4)
-    print_args["acc_std"] = round(test_acc_std, 4)
-    print_args["rmse"] = round(test_rmse, 4)
-    print_args["rmse_std"] = round(test_rmse_std, 4)
-
-    print_args['auc_balanced'] = round(test_auc_balanced, 4)
-    print_args["auc_b_std"] = round(test_aucb_std, 4)
-    print_args['acc_balanced'] = round(test_acc_balanced, 4)
-    print_args["acc_b_std"] = round(test_accb_std, 4)
-    print_args['rmse_balanced'] = round(test_rmse_balanced, 4)
-    print_args["rmse_b_std"] = round(test_rmseb_std, 4)
-    
     if config.use_wandb:
-        print_args['Model'] = model_name 
-        print_args['Dataset'] = data_name 
-        print_args.update(train_config)
-        print_args.update(model_config)
         wandb.log(print_args)
 
 if __name__ == "__main__":
@@ -281,15 +341,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name",
         type=str,
-        default="sakt",
+        default="cl4kt",
         help="The name of the model to train. \
             The possible models are in [akt, cl4kt]. \
-            The default model is sakt.",
+            The default model is cl4kt.",
     )
     parser.add_argument(
         "--data_name",
         type=str,
-        default="ednet",
+        default="algebra05",
         help="The name of the dataset to use in training.",
     )
     parser.add_argument(
@@ -355,6 +415,9 @@ if __name__ == "__main__":
     
     parser.add_argument("--total_cnt_init", type=int, default=0, help="total_cnt_init")
     parser.add_argument("--diff_unk", type=float, default=0.5, help="diff_unk")
+    
+    parser.add_argument("--gpu_num", type=int, required=True, help="gpu number")
+    parser.add_argument("--server_num", type=int, required=True, help="server number")
 
     parser.add_argument("--diff_as_loss_weight", action="store_true", default=False, help="diff_as_loss_weight")
     parser.add_argument("--valid_balanced", action="store_true", default=False, help="valid_balanced")
@@ -374,7 +437,8 @@ if __name__ == "__main__":
     cfg.train_config.describe = args.describe
     cfg.train_config.sparsity = args.sparsity
     cfg.train_config.balanced = args.balanced
-
+    cfg.train_config.gpu_num = args.gpu_num
+    cfg.train_config.server_num = args.server_num
     cfg.train_config.diff_as_loss_weight = args.diff_as_loss_weight
     cfg.train_config.valid_balanced = args.valid_balanced
     cfg.train_config.seed = args.seed
@@ -384,10 +448,29 @@ if __name__ == "__main__":
     
     assert args.de_type.split('_')[0] in ["sde", "lsde", "rde", "lrde", "none"], "de_type error! not in [sde, lsde, rde, lrde, none]"
 
-    if args.model_name == "akt":
+    if args.model_name == "cl4kt":
+        cfg.cl4kt_config = cfg.cl4kt_config[cfg.data_name]
+        cfg.cl4kt_config.only_rp = args.only_rp
+        cfg.cl4kt_config.choose_cl = args.choose_cl
+        # cfg.cl4kt_config.reg_cl = args.reg_cl
+        # cfg.cl4kt_config.mask_prob = args.mask_prob
+        # cfg.cl4kt_config.crop_prob = args.crop_prob
+        # cfg.cl4kt_config.permute_prob = args.permute_prob
+        # cfg.cl4kt_config.replace_prob = args.replace_prob
+        # cfg.cl4kt_config.negative_prob = args.negative_prob
+        # cfg.cl4kt_config.dropout = args.dropout
+        # cfg.cl4kt_config.l2 = args.l2
+    elif args.model_name == "akt":
         cfg.akt_config = cfg.akt_config[cfg.data_name]
     #     cfg.akt_config.l2 = args.l2
     #     cfg.akt_config.dropout = args.dropout
+    elif args.model_name == "rdemkt":
+        cfg.rdemkt_config = cfg.rdemkt_config[cfg.data_name]
+        cfg.rdemkt_config.only_rp = args.only_rp
+        # cfg.mkt_config.choose_cl = args.choose_cl
+        # cfg.mkt_config.inter_lambda = args.inter_lambda
+        # cfg.mkt_config.ques_lambda = args.ques_lambda
+        # cfg.mkt_config.mask_prob = args.mask_prob
         
     cfg[f"{args.model_name}_config"].de_type =  args.de_type
     
