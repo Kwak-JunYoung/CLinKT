@@ -452,25 +452,15 @@ if __name__ == "__main__":
         cfg.cl4kt_config = cfg.cl4kt_config[cfg.data_name]
         cfg.cl4kt_config.only_rp = args.only_rp
         cfg.cl4kt_config.choose_cl = args.choose_cl
-        # cfg.cl4kt_config.reg_cl = args.reg_cl
-        # cfg.cl4kt_config.mask_prob = args.mask_prob
-        # cfg.cl4kt_config.crop_prob = args.crop_prob
-        # cfg.cl4kt_config.permute_prob = args.permute_prob
-        # cfg.cl4kt_config.replace_prob = args.replace_prob
-        # cfg.cl4kt_config.negative_prob = args.negative_prob
-        # cfg.cl4kt_config.dropout = args.dropout
-        # cfg.cl4kt_config.l2 = args.l2
+    if args.model_name == "clsakt":
+        cfg.clsakt_config = cfg.cl4kt_config[cfg.data_name]
+        cfg.clsakt_config.only_rp = args.only_rp
+        cfg.clsakt_config.choose_cl = args.choose_cl   
     elif args.model_name == "akt":
         cfg.akt_config = cfg.akt_config[cfg.data_name]
-    #     cfg.akt_config.l2 = args.l2
-    #     cfg.akt_config.dropout = args.dropout
     elif args.model_name == "rdemkt":
         cfg.rdemkt_config = cfg.rdemkt_config[cfg.data_name]
         cfg.rdemkt_config.only_rp = args.only_rp
-        # cfg.mkt_config.choose_cl = args.choose_cl
-        # cfg.mkt_config.inter_lambda = args.inter_lambda
-        # cfg.mkt_config.ques_lambda = args.ques_lambda
-        # cfg.mkt_config.mask_prob = args.mask_prob
         
     cfg[f"{args.model_name}_config"].de_type =  args.de_type
     
