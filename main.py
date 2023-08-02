@@ -453,7 +453,7 @@ if __name__ == "__main__":
         cfg.cl4kt_config.only_rp = args.only_rp
         cfg.cl4kt_config.choose_cl = args.choose_cl
     if args.model_name == "clsakt":
-        cfg.clsakt_config = cfg.cl4kt_config[cfg.data_name]
+        cfg.clsakt_config = cfg.clsakt_config[cfg.data_name]
         cfg.clsakt_config.only_rp = args.only_rp
         cfg.clsakt_config.choose_cl = args.choose_cl   
     elif args.model_name == "akt":
