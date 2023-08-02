@@ -14,7 +14,6 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
-    kq_same: True
     final_fc_dim: 512
     d_ff: 1024
     dropout: 0.2
@@ -31,7 +30,6 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
-    kq_same: True
     final_fc_dim: 512
     d_ff: 1024
     dropout: 0.2
@@ -48,7 +46,6 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
-    kq_same: True
     final_fc_dim: 512
     d_ff: 1024
     dropout: 0.2
@@ -65,7 +62,6 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
-    kq_same: True
     final_fc_dim: 512
     d_ff: 1024
     dropout: 0.2
@@ -82,7 +78,6 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
-    kq_same: True
     final_fc_dim: 512
     d_ff: 1024
     dropout: 0.2
