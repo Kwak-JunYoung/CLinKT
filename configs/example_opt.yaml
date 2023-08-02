@@ -11,6 +11,7 @@ sakt_config:
 
 clsakt_config:
   algebra05: 
+    embedding_size: 64
     hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
@@ -28,6 +29,7 @@ clsakt_config:
     hard_negative_weight: 0.1
 
   assistments09: 
+    embedding_size: 64
     hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
@@ -45,6 +47,7 @@ clsakt_config:
     hard_negative_weight: 1.0
 
   ednet: 
+    embedding_size: 64
     hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
@@ -62,6 +65,7 @@ clsakt_config:
     hard_negative_weight: 1.0
 
   bridge06: 
+    embedding_size: 64
     hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
@@ -79,6 +83,7 @@ clsakt_config:
     hard_negative_weight: 0.5
 
   slepemapy: 
+    embedding_size: 64
     hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
