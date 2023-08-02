@@ -437,8 +437,8 @@ if __name__ == "__main__":
     cfg.train_config.describe = args.describe
     cfg.train_config.sparsity = args.sparsity
     cfg.train_config.balanced = args.balanced
-    cfg.train_config.gpu_num = args.gpu_num
-    cfg.train_config.server_num = args.server_num
+    # cfg.train_config.gpu_num = args.gpu_num
+    # cfg.train_config.server_num = args.server_num
     cfg.train_config.diff_as_loss_weight = args.diff_as_loss_weight
     cfg.train_config.valid_balanced = args.valid_balanced
     cfg.train_config.seed = args.seed
