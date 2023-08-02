@@ -416,8 +416,8 @@ if __name__ == "__main__":
     parser.add_argument("--total_cnt_init", type=int, default=0, help="total_cnt_init")
     parser.add_argument("--diff_unk", type=float, default=0.5, help="diff_unk")
     
-    parser.add_argument("--gpu_num", type=int, required=True, help="gpu number")
-    parser.add_argument("--server_num", type=int, required=True, help="server number")
+    # parser.add_argument("--gpu_num", type=int, required=True, help="gpu number")
+    # parser.add_argument("--server_num", type=int, required=True, help="server number")
 
     parser.add_argument("--diff_as_loss_weight", action="store_true", default=False, help="diff_as_loss_weight")
     parser.add_argument("--valid_balanced", action="store_true", default=False, help="valid_balanced")
