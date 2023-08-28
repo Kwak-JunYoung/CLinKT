@@ -19,7 +19,7 @@ class SAKT(Module):
         embedding_size, 
         num_attn_heads, 
         dropout, 
-        de_type="none",
+        de_type="none_0",
         num_blocks=2, 
         emb_path="", 
         pretrain_dim=768
