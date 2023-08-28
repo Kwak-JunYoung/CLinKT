@@ -111,13 +111,6 @@ clsaint_config:
   num_blocks: 2
   num_attn_heads: 8
   dropout: 0.2
-  mask_prob: 0.5
-  crop_prob: 0.3
-  permute_prob: 0.5
-  replace_prob: 0.5
-  negative_prob: 1.0
-  temp: 0.05
-  hard_negative_weight: 1.0
 
 akt_config:
   ednet: 
