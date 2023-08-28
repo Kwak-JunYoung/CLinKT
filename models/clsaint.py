@@ -10,8 +10,8 @@ from .saint import SAINT
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CLSAINT(SAINT):
-    def __init__(self, device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, num_blocks, dropout, de_type="none"):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super(SAINT, self).__init__(*args, **kwargs)
     
     def forward(self, feed_dict):
         in_ex = feed_dict["questions"]
