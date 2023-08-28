@@ -14,6 +14,9 @@ clsakt_config:
     embedding_size: 64
     num_blocks: 2
     num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
     dropout: 0.2
     reg_cl: 0.1
     mask_prob: 0.5
@@ -26,8 +29,12 @@ clsakt_config:
 
   assistments09: 
     embedding_size: 64
+    hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
     dropout: 0.2
     reg_cl: 0.1
     mask_prob: 0.5
@@ -40,8 +47,12 @@ clsakt_config:
 
   ednet: 
     embedding_size: 64
+    hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
     dropout: 0.2
     reg_cl: 0.1
     mask_prob: 0.5
@@ -54,8 +65,12 @@ clsakt_config:
 
   bridge06: 
     embedding_size: 64
+    hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
     dropout: 0.2
     reg_cl: 0.1
     mask_prob: 0.3
@@ -68,8 +83,12 @@ clsakt_config:
 
   slepemapy: 
     embedding_size: 64
+    hidden_size: 64
     num_blocks: 2
     num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
     dropout: 0.2
     reg_cl: 0.1
     mask_prob: 0.5
@@ -86,6 +105,25 @@ saint_config:
   num_blocks: 2
   num_attn_heads: 8
   dropout: 0.5
+
+clsaint_config:
+  ednet: 
+    embedding_size: 64
+    hidden_size: 64
+    num_blocks: 2
+    num_attn_heads: 8
+    kq_same: True
+    final_fc_dim: 512
+    d_ff: 1024
+    dropout: 0.2
+    reg_cl: 0.1
+    mask_prob: 0.5
+    crop_prob: 0.3
+    permute_prob: 0.5
+    replace_prob: 0.5
+    negative_prob: 1.0
+    temp: 0.05
+    hard_negative_weight: 1.0
 
 akt_config:
   ednet: 
