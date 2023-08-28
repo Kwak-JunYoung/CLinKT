@@ -453,11 +453,11 @@ if __name__ == "__main__":
         cfg.cl4kt_config = cfg.cl4kt_config[cfg.data_name]
         cfg.cl4kt_config.only_rp = args.only_rp
         cfg.cl4kt_config.choose_cl = args.choose_cl
-    if args.model_name == "clsakt":
+    elif args.model_name == "clsakt":
         cfg.clsakt_config = cfg.clsakt_config[cfg.data_name]
         cfg.clsakt_config.only_rp = args.only_rp
         cfg.clsakt_config.choose_cl = args.choose_cl   
-    if args.model_name == "clsaint":
+    elif args.model_name == "clsaint":
         cfg.clsaint_config = cfg.clsaint_config[cfg.data_name]
         cfg.clsaint_config.only_rp = args.only_rp
         cfg.clsaint_config.choose_cl = args.choose_cl           
