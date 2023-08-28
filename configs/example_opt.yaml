@@ -107,11 +107,10 @@ saint_config:
   dropout: 0.5
 
 clsaint_config:
-  ednet:
-    embedding_size: 64
-    num_blocks: 2
-    num_attn_heads: 8
-    dropout: 0.2
+  embedding_size: 64
+  num_blocks: 2
+  num_attn_heads: 8
+  dropout: 0.2
 
 akt_config:
   ednet: 
