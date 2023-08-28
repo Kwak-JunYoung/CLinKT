@@ -6,10 +6,10 @@ from .modules import transformer_FFN, get_clones, ut_mask, pos_encode, Multihead
 from torch.nn import Embedding, Linear
 from IPython import embed 
 from .rpe import SinusoidalPositionalEmbeddings 
-
+from .saint import SAINT
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-class SAINT(nn.Module):
+class CLSAINT(SAINT):
     def __init__(self, device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, num_blocks, dropout, de_type="none"):
         super().__init__()
         # print(f"num_questions: {num_questions}, num_skills: {num_skills}")
