@@ -12,6 +12,7 @@ from .saint import SAINT
 class CLSAINT(SAINT):
     def __init__(self, *args, **kwargs):
         super(SAINT, self).__init__(*args, **kwargs)
+        self.args = kwargs
     
     def forward(self, feed_dict):
         in_ex = feed_dict["questions"]
