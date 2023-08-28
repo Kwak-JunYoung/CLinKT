@@ -12,38 +12,6 @@ from .saint import SAINT
 class CLSAINT(SAINT):
     def __init__(self, device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, num_blocks, dropout, de_type="none"):
         super().__init__()
-        # print(f"num_questions: {num_questions}, num_skills: {num_skills}")
-        if num_questions == num_skills and num_questions == 0:
-            assert num_questions != 0
-        self.num_questions = num_questions
-        self.num_skills = num_skills
-        self.model_name = "saint"
-        self.num_en = num_blocks
-        self.num_de = num_blocks
-
-        self.embd_pos = nn.Embedding(seq_len, embedding_dim = embedding_size) 
-        # self.embd_pos = Parameter(torch.Tensor(seq_len-1, embedding_size))
-        # kaiming_normal_(self.embd_pos)
-        self.device = device
-        self.encoder = get_clones(Encoder_block(device, embedding_size, num_attn_heads, num_questions, num_skills, seq_len, dropout), self.num_en)
-        
-        self.de = de_type.split('_')[0]
-        self.token_num = int(de_type.split('_')[1])
-        if self.de in ["sde", "lsde"]:
-            diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(2*(self.token_num+1), embedding_size)).to(device)
-            self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
-            rotary = "none"
-        elif self.de in ["rde", "lrde"]:
-            rotary = "qkv"
-        else: 
-            rotary = "none"
-            
-        self.decoder = get_clones(Decoder_block(device, embedding_size, num_attn_heads, seq_len, dropout, rotary), self.num_de)
-        self.embd_res    = nn.Embedding(2+1, embedding_dim = embedding_size)                  #response embedding, include a start token
-
-        self.dropout = Dropout(dropout)
-        self.out = nn.Linear(in_features=embedding_size, out_features=1)
-        self.loss_fn = BCELoss(reduction="mean")
     
     def forward(self, feed_dict):
         in_ex = feed_dict["questions"]
