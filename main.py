@@ -18,6 +18,7 @@ from models.akt import AKT
 from models.sakt import SAKT
 from models.saint import SAINT
 from models.clsakt import CLSAKT
+from models.clsaint import CLSAINT
 # from models.cl4kt import CL4KT
 # from models.rdemkt import RDEMKT
 from train import model_train
