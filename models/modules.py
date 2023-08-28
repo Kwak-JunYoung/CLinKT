@@ -23,6 +23,105 @@ from torch.nn import Module, Linear, Dropout, Sequential, ReLU
 import copy
 import pandas as pd
 
+
+class CL4KTTransformerLayer(Module):
+    def __init__(self, d_model, d_feature, d_ff, n_heads, dropout, kq_same, rotary="none"):
+        super(CL4KTTransformerLayer, self).__init__()
+        """
+            This is a Basic Block of Transformer paper.
+            It contains one Multi-head attention object.
+            Followed by layer norm and position-wise feed-forward net and dropotu layer.
+        """
+        kq_same = kq_same == 1
+        # Multi-Head Attention Block
+        self.masked_attn_head = MultiHeadAttentionWithIndividualFeatures(
+            d_model, d_feature, n_heads, dropout, kq_same=kq_same, rotary=rotary
+        )
+
+        # Two layer norm and two dropout layers
+        self.layer_norm1 = LayerNorm(d_model)
+        self.dropout1 = Dropout(dropout)
+
+        self.linear1 = Linear(d_model, d_ff)
+        self.activation = GELU()
+        self.dropout = Dropout(dropout)
+        self.linear2 = Linear(d_ff, d_model)
+
+        self.layer_norm2 = LayerNorm(d_model)
+        self.dropout2 = Dropout(dropout)
+
+    def forward(self, mask, query, key, values, diff=None, apply_pos=True):
+        """
+        Input:
+            block: object of type BasicBlock(nn.Module). It contains maksed_attn_head objects which is of type MultiHeadAttnetion(nn.Module).
+            mask: 0 means that it can peek (엿보다) only past values. 1 means that block can peek only current and past values
+            query: Queries. In Transformer paper it is the input for both encoder and decoder
+            key: Keys. In transformer paper it is the input for both encoder and decoder
+            values: Values. In transformer paper it is the input for encoder and encoded output for decoder (in masked attention part)
+
+        Output:
+            query: Input gets changed over the alyer andr returned
+        """
+
+        batch_size, seqlen = query.size(0), query.size(1)
+        """
+        when mask==1
+        >>> nopeek_mask (for question encoder, knoweldge encoder)
+            array([[[[0, 1, 1, 1, 1],
+                    [0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0]]]], dtype=uint8)
+
+         >>> src_mask
+            tensor([[[[ True, False, False, False, False],
+                    [ True,  True, False, False, False],
+                    [ True,  True,  True, False, False],
+                    [ True,  True,  True,  True, False],
+                    [ True,  True,  True,  True,  True]]]])
+
+        when mask==0 (for knowledge retriever)
+        >>> nopeek_mask
+            array([[[[1, 1, 1, 1, 1],
+                    [0, 1, 1, 1, 1],
+                    [0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 1]]]], dtype=uint8)
+
+        >>> src_mask
+            tensor([[[[False, False, False, False, False],
+                    [ True, False, False, False, False],
+                    [ True,  True, False, False, False],
+                    [ True,  True,  True, False, False],
+                    [ True,  True,  True,  True, False]]]])
+
+        row: target, col: source
+        """
+        device = query.get_device()
+        nopeek_mask = np.triu(np.ones((1, 1, seqlen, seqlen)), k=mask).astype("uint8")
+
+        src_mask = (torch.from_numpy(nopeek_mask) == 0).to(device)
+
+        bert_mask = torch.ones_like(src_mask).bool()
+
+        if mask == 0:
+            query2, attn = self.masked_attn_head(query, key, values, diff=diff, mask=src_mask)
+        elif mask == 1:
+            query2, attn = self.masked_attn_head(query, key, values, diff=diff, mask=src_mask)
+        else:  # mask == 2
+            query2, attn = self.masked_attn_head(query, key, values, diff=diff, mask=bert_mask)
+
+        query = query + self.dropout1((query2))  # residual connection
+        query = self.layer_norm1(query)
+
+        if apply_pos:
+            query2 = self.linear2(self.dropout(self.activation(self.linear1(query))))
+            query = query + self.dropout2((query2))
+            query = self.layer_norm2(query)
+
+        return query, attn
+
+
 class AKTTransformerLayer(Module):
     def __init__(self, d_model, d_feature, d_ff, n_heads, dropout, kq_same, rotary="none"):
         super(AKTTransformerLayer, self).__init__()
