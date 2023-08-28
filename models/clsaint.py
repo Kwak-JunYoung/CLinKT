@@ -13,6 +13,17 @@ class CLSAINT(SAINT):
     def __init__(self, *args, **kwargs):
         super(CLSAINT, self).__init__(*args, **kwargs)
         self.args = kwargs
+        self.hidden_size = self.args["hidden_size"]
+
+        self.kq_same = self.args["kq_same"]
+        self.final_fc_dim = self.args["final_fc_dim"]
+        self.d_ff = self.args["d_ff"]
+
+        self.reg_cl = self.args["reg_cl"]
+        self.negative_prob = self.args["negative_prob"]
+        self.hard_negative_weight = self.args["hard_negative_weight"]
+        self.only_rp = self.args["only_rp"]
+        self.choose_cl = self.args["choose_cl"]        
     
     def forward(self, feed_dict):
         in_ex = feed_dict["questions"]

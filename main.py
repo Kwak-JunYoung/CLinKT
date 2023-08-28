@@ -350,7 +350,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_name",
         type=str,
-        default="algebra05",
+        default="ednet",
         help="The name of the dataset to use in training.",
     )
     parser.add_argument(
@@ -457,6 +457,10 @@ if __name__ == "__main__":
         cfg.clsakt_config = cfg.clsakt_config[cfg.data_name]
         cfg.clsakt_config.only_rp = args.only_rp
         cfg.clsakt_config.choose_cl = args.choose_cl   
+    if args.model_name == "clsaint":
+        cfg.clsaint_config = cfg.clsaint_config[cfg.data_name]
+        cfg.clsaint_config.only_rp = args.only_rp
+        cfg.clsaint_config.choose_cl = args.choose_cl           
     elif args.model_name == "akt":
         cfg.akt_config = cfg.akt_config[cfg.data_name]
     elif args.model_name == "rdemkt":

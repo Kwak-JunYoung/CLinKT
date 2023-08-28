@@ -98,7 +98,6 @@ clsakt_config:
     negative_prob: 1.0
     temp: 0.05
     hard_negative_weight: 0.5
-  
 
 saint_config:
   embedding_size: 64
