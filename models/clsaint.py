@@ -11,7 +11,7 @@ from .saint import SAINT
 
 class CLSAINT(SAINT):
     def __init__(self, *args, **kwargs):
-        super(CLSAINT, self).__init__(*args, kwargs["embedding_size"], kwargs["num_attn_heads"], kwargs["num_blocks"], kwargs["dropout"])
+        super(CLSAINT, self).__init__(*args, kwargs["embedding_size"], kwargs["num_attn_heads"], kwargs["num_blocks"], kwargs["dropout"], kwargs["de_type"])
         self.args = kwargs
         self.hidden_size = self.args["hidden_size"]
 
