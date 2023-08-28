@@ -16,7 +16,7 @@ from .contrastiveLoss import ContrastiveLoss
 
 class CLSAKT(SAKT):
     def __init__(self, *args, **kwargs):
-        super(CLSAKT, self).__init__(*args, **kwargs)
+        super(CLSAKT, self).__init__(*args, kwargs["embedding_size"], kwargs["num_attn_heads"], kwargs["num_blocks"], kwargs["dropout"], kwargs["de_type"])
 
 
         self.args = kwargs

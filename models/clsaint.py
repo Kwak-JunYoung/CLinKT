@@ -24,6 +24,8 @@ class CLSAINT(SAINT):
         self.hard_negative_weight = self.args["hard_negative_weight"]
         self.only_rp = self.args["only_rp"]
         self.choose_cl = self.args["choose_cl"]        
+
+        self.contrastive_loss = torch.nn.CrossEntropyLoss(reduction="mean")
     
     def forward(self, feed_dict):
         in_ex = feed_dict["questions"]
@@ -86,14 +88,6 @@ class CLSAINT(SAINT):
             "true": feed_dict["responses"][:, 1:].float(),
         }
         return out_dict
-    def contrastive_loss(self, embeddings, positive_pairs, negative_pairs, margin=0.2):
-        # Calculate distances between embeddings
-        positive_distances = F.pairwise_distance(embeddings[positive_pairs[:, 0]], embeddings[positive_pairs[:, 1]])
-        negative_distances = F.pairwise_distance(embeddings[negative_pairs[:, 0]], embeddings[negative_pairs[:, 1]])
-
-        # Calculate contrastive loss
-        loss = torch.mean(torch.clamp(positive_distances - negative_distances + margin, min=0))
-        return loss
 
     def loss(self, feed_dict, out_dict, positive_pairs, negative_pairs):
         # ... (other loss calculations remain the same)
@@ -108,6 +102,7 @@ class CLSAINT(SAINT):
         
         # Combine losses
         total_loss = knowledge_tracing_loss + contrastive_loss
+        
         return total_loss, len(pred[mask]), true[mask].sum().item()
 
 
