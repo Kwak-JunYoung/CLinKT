@@ -1,7 +1,7 @@
 import torch
 
-from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss, ModuleList, Sequential, GELU
-from .modules import transformer_FFN, pos_encode, ut_mask, get_clones, MultiheadAttention, CL4KTTransformerLayer
+from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss
+from .modules import transformer_FFN, pos_encode, ut_mask, get_clones, MultiheadAttention
 from .rpe import SinusoidalPositionalEmbeddings 
 
 if torch.cuda.is_available():
@@ -9,99 +9,57 @@ if torch.cuda.is_available():
 
 from IPython import embed
 
-import torch.nn.functional as F
-from torch.nn import CosineSimilarity
-from .sakt import SAKT
-from .contrastiveLoss import ContrastiveLoss
+class SAKT(Module):
+    def __init__(
+        self, 
+        device, 
+        num_skills,
+        num_questions, 
+        seq_len, 
+        embedding_size, 
+        num_attn_heads, 
+        dropout, 
+        de_type="none_0",
+        num_blocks=2, 
+        emb_path="", 
+        pretrain_dim=768
+        ):
+        super().__init__()
+        self.device = device 
 
-class CLSAKT(SAKT):
-    def __init__(self, *args, **kwargs):
-        super(CLSAKT, self).__init__(*args, kwargs["embedding_size"], kwargs["num_attn_heads"], kwargs["num_blocks"], kwargs["dropout"], kwargs["de_type"])
+        self.num_questions = num_questions
+        self.num_skills = num_skills
+        self.seq_len = seq_len
+        self.embedding_size = embedding_size
+        self.num_attn_heads = num_attn_heads
+        self.dropout = dropout
+        self.num_blocks = num_blocks
+        self.loss_fn = BCELoss(reduction="mean")
+        self.cl_loss_fn = torch.nn.CrossEntropyLoss(reduction="mean")
 
+        # num_questions, seq_len, embedding_size, num_attn_heads, dropout, emb_path="")
+        self.interaction_emb = Embedding(num_skills * 2, embedding_size, padding_idx=0)
+        self.exercise_emb = Embedding(num_skills, embedding_size, padding_idx=0)
+        # self.P = Parameter(torch.Tensor(self.seq_len, self.embedding_size))
+        self.position_emb = Embedding(seq_len + 1, embedding_size, padding_idx=0)
 
-        self.args = kwargs
-        self.hidden_size = self.args["hidden_size"]
+        self.de = de_type.split('_')[0]
+        assert self.de not in ["lsde", "lrde"], "de_type error! should not in [lsde, lrde]"
+        self.token_num = int(de_type.split('_')[1])
+        
+        if self.de in ["sde"]:
+            diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(2*(self.token_num+1), embedding_size)).to(device)
+            self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
+            rotary = "none"
+        elif self.de in ["rde"]:
+            rotary = "kv"
+        else: 
+            rotary = "none"
 
-        self.kq_same = self.args["kq_same"]
-        self.final_fc_dim = self.args["final_fc_dim"]
-        self.d_ff = self.args["d_ff"]
+        self.blocks = get_clones(Blocks(device, embedding_size, num_attn_heads, dropout, rotary), self.num_blocks)
 
-        self.reg_cl = self.args["reg_cl"]
-        self.negative_prob = self.args["negative_prob"]
-        self.hard_negative_weight = self.args["hard_negative_weight"]
-        self.only_rp = self.args["only_rp"]
-        self.choose_cl = self.args["choose_cl"]
-        self.de = self.args["de_type"].split('_')[0]
-        self.token_num = int(self.args["de_type"].split('_')[1])
-        # self.diff_as_loss_weight = diff_as_loss_weight
-
-        # if self.de in ["sde", "lsde"]:
-        #     diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(
-        #         2*(self.token_num+1), self.hidden_size)).to(device)
-        #     self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
-        #     rotary = "none"
-        # elif self.de in ["rde", "lrde"]:
-        #     rotary = "qkv"
-        # else:
-        #     rotary = "none"
-
-        self.question_encoder = ModuleList(
-            [
-                CL4KTTransformerLayer(
-                    d_model=self.hidden_size,
-                    d_feature=self.hidden_size // self.num_attn_heads,
-                    d_ff=self.d_ff,
-                    n_heads=self.num_attn_heads,
-                    dropout=self.dropout,
-                    kq_same=self.kq_same,
-                )
-                for _ in range(self.num_blocks)
-            ]
-        )
-
-        self.interaction_encoder = ModuleList(
-            [
-                CL4KTTransformerLayer(
-                    d_model=self.hidden_size,
-                    d_feature=self.hidden_size // self.num_attn_heads,
-                    d_ff=self.d_ff,
-                    n_heads=self.num_attn_heads,
-                    dropout=self.dropout,
-                    kq_same=self.kq_same,
-                    # rotary=rotary,
-                )
-                for _ in range(self.num_blocks)
-            ]
-        )
-
-        self.knoweldge_retriever = ModuleList(
-            [
-                CL4KTTransformerLayer(
-                    d_model=self.hidden_size,
-                    d_feature=self.hidden_size // self.num_attn_heads,
-                    d_ff=self.d_ff,
-                    n_heads=self.num_attn_heads,
-                    dropout=self.dropout,
-                    kq_same=self.kq_same,
-                )
-                for _ in range(self.num_blocks)
-            ]
-        )
-
-        self.out = Sequential(
-            Linear(2 * self.hidden_size, self.final_fc_dim),
-            GELU(),
-            Dropout(self.dropout),
-            Linear(self.final_fc_dim, self.final_fc_dim // 2),
-            GELU(),
-            Dropout(self.dropout),
-            Linear(self.final_fc_dim // 2, 1),
-        )
-
-        if self.diff_as_loss_weight:
-            self.loss_fn = torch.nn.BCELoss(reduction="none")
-
-        self.contrastive_loss = torch.nn.CrossEntropyLoss(reduction="mean")
+        self.dropout_layer = Dropout(dropout)
+        self.pred = Linear(self.embedding_size, 1)
 
     def base_emb(self, q, r, qry, pos, diff):
         masked_responses = r * (r > -1).long()
@@ -119,13 +77,26 @@ class CLSAKT(SAKT):
         else:
             return qshftemb, xemb, None
 
-    def forward(self, feed_dict):
-        q = feed_dict["skills"][:, :-1]
-        r = feed_dict["responses"][:, :-1]
-        qry = feed_dict["skills"][:, 1:]
-        pos = feed_dict["position"][:, :-1]
-        diff = feed_dict["sdiff"][:, :-1]
+    def forward(self, batch):
+        # augmented q_i, augmented q_j and original q
+        q_i, q_j, q = batch["skills"][:, -1]
         
+        # augmented r_i, augmented r_j and original r
+        r_i, r_j, r, neg_r = batch["responses"][:, -1]
+
+        # augmented qry_i, augmented qry_j and original qry
+        qry_i, qry_j, qry = batch["skills"][:, 1:]
+
+        # augmented pos_i, augmented pos_j and original pos
+        pos_i, pos_j, pos = batch["position"][:, :-1]
+
+        # augmented diff_i, augmented diff_j and original diff
+        diff_i, diff_j, diff = batch["sdiff"][:, -1]
+        
+        qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
+        qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
+        qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
+
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)                
             diff = torch.bucketize(diff, boundaries)
@@ -137,39 +108,45 @@ class CLSAKT(SAKT):
         qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
         
         for i in range(self.num_blocks): #sakt's num_blocks = 1
+            xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox)
+            xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox)
             xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
-        
-        # Compute positive and negative pairs
-        positive_pairs = xemb[::2]
-        negative_pairs = xemb[1::2]
-
-        # Compute cosine similarity between positive and negative pairs
-        cosine_sim = CosineSimilarity(dim=1)
-        similarity = cosine_sim(positive_pairs, negative_pairs)
-
-        # Labels for contrastive loss (1 for positive pairs, 0 for negative pairs)
-        labels = torch.ones_like(similarity)
-
-        # Compute contrastive loss
-        contrastive_loss = self.contrastive_loss(similarity, labels)
-
+            
+        p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
+        p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
         p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)
-        print("p", p.shape)
+
         out_dict = {
+            "pred_i": p_i,
+            "pred_j": p_j,
             "pred": p,
-            "true": feed_dict["responses"][:, 1:].float(),
-            "contrastive_loss": contrastive_loss,
+            "true_i": batch["responses"][:, 1:].float(),
+            "true_j": batch["responses"][:, 1:].float(),
+            "true": batch["responses"][:, 1:].float(),
         }
         return out_dict
 
     def loss(self, feed_dict, out_dict):
+        pred_i = out_dict["pred_i"].flatten()
+        pred_j = out_dict["pred_j"].flatten()
         pred = out_dict["pred"].flatten()
+
+        true_i = out_dict["true_i"].flatten()
+        true_j = out_dict["true_j"].flatten()
         true = out_dict["true"].flatten()
+
+        mask_i = true_i > -1
+        loss_i = self.loss_fn(pred_i[mask_i], true_i[mask_i])
+
+        mask_j = true_j > -1
+        loss_j = self.loss_fn(pred_j[mask_j], true_j[mask_j])
+
         mask = true > -1
-        loss_before = self.loss_fn(pred[mask], true[mask])
-        contrastive_loss = out_dict["contrastive_loss"]
-        loss = contrastive_loss # + loss_before
-        return loss , len(pred[mask]), true[mask].sum().item()
+        loss = self.loss_fn(pred[mask], true[mask])
+
+        final_loss = loss + loss_i + loss_j
+
+        return final_loss , len(pred[mask]), true[mask].sum().item()
 
 class Blocks(Module):
     def __init__(self, device, embedding_size, num_attn_heads, dropout, rotary="none") -> None:
