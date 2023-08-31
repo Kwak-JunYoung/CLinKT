@@ -3,7 +3,7 @@ import torch
 from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss
 from .modules import transformer_FFN, pos_encode, ut_mask, get_clones, MultiheadAttention
 from .rpe import SinusoidalPositionalEmbeddings 
-from .sakt import SAKT
+
 if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
@@ -25,6 +25,7 @@ class CLSAKT(Module):
         num_attn_heads = kwargs["num_attn_heads"]
         dropout = kwargs["dropout"]
         de_type = kwargs["de_type"]
+        num_blocks = kwargs["num_blocks"]
 
         self.num_questions = num_questions
         self.num_skills = num_skills
@@ -32,7 +33,7 @@ class CLSAKT(Module):
         self.embedding_size = embedding_size
         self.num_attn_heads = num_attn_heads
         self.dropout = dropout
-        self.num_blocks = kwargs["num_blocks"]
+        self.num_blocks = num_blocks
         self.loss_fn = BCELoss(reduction="mean")
         self.cl_loss_fn = torch.nn.CrossEntropyLoss(reduction="mean")
 
@@ -93,7 +94,6 @@ class CLSAKT(Module):
         # augmented diff_i, augmented diff_j and original diff
         diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
         
-        
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)
             diff = torch.bucketize(diff, boundaries)
@@ -121,8 +121,8 @@ class CLSAKT(Module):
         
         for i in range(self.num_blocks): #sakt's num_blocks = 1
             xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
-            xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox)
-            xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox)
+            xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox_i)
+            xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox_j)
             
             
         p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
