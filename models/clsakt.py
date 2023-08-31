@@ -97,7 +97,7 @@ class CLSAKT(Module):
         qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
         qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
         
-
+        
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)                
             diff = torch.bucketize(diff, boundaries)
