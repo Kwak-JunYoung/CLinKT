@@ -80,19 +80,19 @@ class CLSAKT(Module):
         # augmented q_i, augmented q_j and original q
         print(batch["skills"].shape)
         print(batch["skills"])
-        q_i, q_j, q = batch["skills"][:, -1]
+        q_i, q_j, q = batch["skills"]
         
         # augmented r_i, augmented r_j and original r
-        r_i, r_j, r, neg_r = batch["responses"][:, -1]
+        r_i, r_j, r, neg_r = batch["responses"]
 
         # augmented qry_i, augmented qry_j and original qry
-        qry_i, qry_j, qry = batch["skills"][:, 1:]
+        qry_i, qry_j, qry = batch["skills"]
 
         # augmented pos_i, augmented pos_j and original pos
-        pos_i, pos_j, pos = batch["position"][:, :-1]
+        pos_i, pos_j, pos = batch["position"]
 
         # augmented diff_i, augmented diff_j and original diff
-        diff_i, diff_j, diff = batch["sdiff"][:, -1]
+        diff_i, diff_j, diff = batch["sdiff"]
         
         qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
         qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
