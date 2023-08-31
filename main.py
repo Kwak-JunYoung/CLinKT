@@ -34,6 +34,7 @@ import statistics
 import json
 import random 
 
+# Random seed
 def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -42,6 +43,7 @@ def set_seed(seed: int):
 
     torch.backends.cudnn.deterministic = True
 
+# Obtain information of the model
 def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weight, config, model_name):
     if model_name == "akt":
         model_config = config.akt_config
@@ -65,6 +67,7 @@ def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weig
         raise NotImplementedError("model name is not valid")
     return model_config, model
 
+# Create checkpoint directory
 def create_ckpt_dir(checkpoint_dir, model_name, data_name):
     if not os.path.isdir(checkpoint_dir):
         os.mkdir(checkpoint_dir)
@@ -78,6 +81,7 @@ def create_ckpt_dir(checkpoint_dir, model_name, data_name):
         os.mkdir(ckpt_path)
     return ckpt_path
 
+# Get data loaders
 def get_data_loaders(accelerator, train_dataset, valid_dataset, test_dataset, config, train_config, model_config):
         model_name = config.model_name
         seq_len = train_config.seq_len
@@ -139,6 +143,7 @@ def get_data_loaders(accelerator, train_dataset, valid_dataset, test_dataset, co
 
         return train_loader, valid_loader, test_loader
 
+# Get test results to record in wandb
 def get_print_args(test_aucs, test_accs, test_rmses, test_aucs_balanced, test_accs_balanced, test_rmses_balanced, config, train_config, model_config):
     model_name = config.model_name
     data_name = config.data_name
@@ -183,14 +188,18 @@ def get_print_args(test_aucs, test_accs, test_rmses, test_aucs_balanced, test_ac
 
     return print_args
 
+def initialize_wandb(params_str):
+    wandb.init(project="CLinKT", entity="kwakjunyoung")
+    wandb.run.name = params_str
+    wandb.run.save()
+
 def main(config):
 
     tm = localtime(time.time())
     params_str = f'{tm.tm_mon}_{tm.tm_mday}_{tm.tm_hour}:{tm.tm_min}:{tm.tm_sec}'
+
     if config.use_wandb:
-        wandb.init(project="CLinKT", entity="kwakjunyoung")
-        wandb.run.name = params_str
-        wandb.run.save()
+        initialize_wandb(params_str)
 
     accelerator = Accelerator()
     device = accelerator.device
