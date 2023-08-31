@@ -16,16 +16,15 @@ class CLSAKT(SAKT):
         num_skills,
         num_questions, 
         seq_len, 
-        embedding_size, 
-        num_attn_heads, 
-        dropout, 
-        de_type="none_0",
-        num_blocks=2, 
-        emb_path="", 
-        pretrain_dim=768
+        **kwargs
         ):
-        super(CLSAKT, self).__init__(device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, dropout, de_type, num_blocks, emb_path, pretrain_dim)
+        super(CLSAKT, self).__init__(device, num_skills, num_questions, seq_len, **kwargs)
         self.device = device 
+
+        embedding_size = kwargs["embedding_size"]
+        num_attn_heads = kwargs["num_attn_heads"]
+        dropout = kwargs["dropout"]
+        de_type = kwargs["de_type"]
 
         self.num_questions = num_questions
         self.num_skills = num_skills
@@ -33,7 +32,7 @@ class CLSAKT(SAKT):
         self.embedding_size = embedding_size
         self.num_attn_heads = num_attn_heads
         self.dropout = dropout
-        self.num_blocks = num_blocks
+        self.num_blocks = kwargs["num_blocks"]
         self.loss_fn = BCELoss(reduction="mean")
         self.cl_loss_fn = torch.nn.CrossEntropyLoss(reduction="mean")
 
