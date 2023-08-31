@@ -78,6 +78,8 @@ class CLSAKT(Module):
 
     def forward(self, batch):
         # augmented q_i, augmented q_j and original q
+        print(batch["skills"].shape)
+        print(batch["skills"])
         q_i, q_j, q = batch["skills"][:, -1]
         
         # augmented r_i, augmented r_j and original r
