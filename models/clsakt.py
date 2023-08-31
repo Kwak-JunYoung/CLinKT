@@ -93,9 +93,10 @@ class CLSAKT(Module):
         # augmented diff_i, augmented diff_j and original diff
         diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
         
+        qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
         qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
         qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
-        qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
+        
 
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)                
@@ -108,9 +109,10 @@ class CLSAKT(Module):
         qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
         
         for i in range(self.num_blocks): #sakt's num_blocks = 1
+            xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
             xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox)
             xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox)
-            xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
+            
             
         p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
         p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
