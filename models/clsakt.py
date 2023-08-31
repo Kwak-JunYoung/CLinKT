@@ -78,8 +78,7 @@ class CLSAKT(Module):
 
     def forward(self, batch):
         # augmented q_i, augmented q_j and original q
-        print(batch["skills"].shape)
-        print(batch["skills"])
+
         q_i, q_j, q = batch["skills"]
         
         # augmented r_i, augmented r_j and original r
@@ -121,9 +120,9 @@ class CLSAKT(Module):
             "pred_i": p_i,
             "pred_j": p_j,
             "pred": p,
-            "true_i": batch["responses"][:, 1:].float(),
-            "true_j": batch["responses"][:, 1:].float(),
-            "true": batch["responses"][:, 1:].float(),
+            "true_i": batch["responses"].float(),
+            "true_j": batch["responses"].float(),
+            "true": batch["responses"].float(),
         }
         return out_dict
 
