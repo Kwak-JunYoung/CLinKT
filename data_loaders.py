@@ -138,7 +138,7 @@ class SimCLRDatasetWrapper(Dataset):
                 "attention_mask": (attention_mask_1, attention_mask_2, attention_mask),
                 "qdiff": (aug_qd_seq_1, aug_qd_seq_2, original_data["qdiff"]),
                 "sdiff": (aug_sd_seq_1, aug_sd_seq_2, original_data["sdiff"]),
-                "position": self.position[index],
+                "position": (self.position[index],self.position[index],self.position[index])
 
             }
             return ret
