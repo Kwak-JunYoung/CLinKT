@@ -82,7 +82,7 @@ class CLSAKT(Module):
         q_i, q_j, q = batch["skills"][0][:, :-1], batch["skills"][1][:, :-1], batch["skills"][2][:, :-1]
         
         # augmented r_i, augmented r_j and original r
-        r_i, r_j, r, neg_r = batch["responses"][0][:, :-1], batch["responses"][1][:, :-1], batch["responses"][2][:, :-1], batch["responses"][:, :-1]
+        r_i, r_j, r, neg_r = batch["responses"][0][:, :-1], batch["responses"][1][:, :-1], batch["responses"][2][:, :-1], batch["responses"][3][:, :-1]
 
         # augmented qry_i, augmented qry_j and original qry
         qry_i, qry_j, qry = batch["skills"][0][:, 1:], batch["skills"][1][:, 1:], batch["skills"][2][:, 1:]
