@@ -9,7 +9,7 @@ if torch.cuda.is_available():
 
 from IPython import embed
 
-class CLSAKT(SAKT):
+class CLSAKT(Module):
     def __init__(
         self, 
         device, 
@@ -18,7 +18,7 @@ class CLSAKT(SAKT):
         seq_len, 
         **kwargs
         ):
-        super(CLSAKT, self).__init__(device, num_skills, num_questions, seq_len, **kwargs)
+        super().__init__()
         self.device = device 
 
         embedding_size = kwargs["embedding_size"]
