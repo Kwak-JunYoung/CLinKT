@@ -3,13 +3,13 @@ import torch
 from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss
 from .modules import transformer_FFN, pos_encode, ut_mask, get_clones, MultiheadAttention
 from .rpe import SinusoidalPositionalEmbeddings 
-
+from .sakt import SAKT
 if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 from IPython import embed
 
-class SAKT(Module):
+class CLSAKT(SAKT):
     def __init__(
         self, 
         device, 
@@ -24,7 +24,7 @@ class SAKT(Module):
         emb_path="", 
         pretrain_dim=768
         ):
-        super().__init__()
+        super(CLSAKT, self).__init__(device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, dropout, de_type, num_blocks, emb_path, pretrain_dim)
         self.device = device 
 
         self.num_questions = num_questions
