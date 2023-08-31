@@ -207,10 +207,6 @@ def main(config):
     model_name = config.model_name
     dataset_path = config.dataset_path
     data_name = config.data_name
-    seed = config.seed
-
-    np.random.seed(seed)
-    torch.manual_seed(seed)
 
     df_path = os.path.join(os.path.join(dataset_path, data_name), "preprocessed_df.csv")
 
