@@ -93,20 +93,31 @@ class CLSAKT(Module):
         # augmented diff_i, augmented diff_j and original diff
         diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
         
+        
+        if self.token_num < 1000:
+            boundaries = torch.linspace(0, 1, steps=self.token_num+1)
+            diff = torch.bucketize(diff, boundaries)
+            diff_i = torch.bucketize(diff_i, boundaries)
+            diff_j = torch.bucketize(diff_j, boundaries)
+
+            diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
+            diff_ox_i = torch.where(r_i==0 , (diff_i-(self.token_num+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
+            diff_ox_j = torch.where(r_j==0 , (diff_j-(self.token_num+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
+            diff_neg = torch.where(neg_r==1 , (diff-(self.token_num+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
+
+        else:
+            diff = diff * 100
+            diff_i = diff_i * 100
+            diff_j = diff_j * 100
+
+            diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
+            diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
+            diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
+            diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
+            
         qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
         qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
         qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
-        
-        
-        if self.token_num < 1000:
-            boundaries = torch.linspace(0, 1, steps=self.token_num+1)                
-            diff = torch.bucketize(diff, boundaries)
-            diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())  
-        else:
-            diff = diff * 100
-            diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
-            
-        qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
         
         for i in range(self.num_blocks): #sakt's num_blocks = 1
             xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
