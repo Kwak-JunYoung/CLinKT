@@ -81,57 +81,51 @@ class CLSAKT(Module):
             return qshftemb, xemb, None
 
     def forward(self, batch):
-        # augmented q_i, augmented q_j and original q
-        q_i, q_j, q = batch["skills"]
-        q_i = q_i[:, :-1]
-        q_j = q_j[:, :-1]
-        q = q[:, :-1]
+        if self.training:
+            # augmented q_i, augmented q_j and original q
+            q_i, q_j, q = batch["skills"][0][:, :-1], batch["skills"][1][:, :-1], batch["skills"][2][:, :-1]
+            
+            # augmented r_i, augmented r_j and original r
+            r_i, r_j, r, neg_r = batch["responses"][0][:, :-1], batch["responses"][1][:, :-1], batch["responses"][2][:, :-1], batch["responses"][3][:, :-1]
 
-        # augmented r_i, augmented r_j and original r
-        r_i, r_j, r, neg_r = batch["responses"]
-        r_i = r_i[:, :-1]
-        r_j = r_j[:, :-1]
-        r = r[:, :-1]
-        neg_r = neg_r[:, :-1]
+            # augmented qry_i, augmented qry_j and original qry
+            qry_i, qry_j, qry = batch["skills"][0][:, 1:], batch["skills"][1][:, 1:], batch["skills"][2][:, 1:]
 
-        # augmented qry_i, augmented qry_j and original qry
-        qry_i, qry_j, qry = batch["skills"]
-        qry_i = qry_i[:, :-1]
-        qry_j = qry_j[:, :-1]
-        qry = qry[:, :-1]
+            # augmented pos_i, augmented pos_j and original pos
+            pos_i, pos_j, pos = batch["position"][0][:, :-1], batch["position"][1][:, :-1], batch["position"][2][:, :-1]
 
-        # augmented pos_i, augmented pos_j and original pos
-        pos_i, pos_j, pos = batch["position"]
-        pos_i = pos_i[:, :-1]
-        pos_j = pos_j[:, :-1]
-        pos = pos[:, :-1]
+            # augmented diff_i, augmented diff_j and original diff
+            diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
+            
+            if self.token_num < 1000:
+                boundaries = torch.linspace(0, 1, steps=self.token_num+1)
+                diff = torch.bucketize(diff, boundaries)
+                diff_i = torch.bucketize(diff_i, boundaries)
+                diff_j = torch.bucketize(diff_j, boundaries)
 
-        # augmented diff_i, augmented diff_j and original diff
-        diff_i, diff_j, diff = batch["sdiff"]
-        diff_i = diff_i[:, :-1]
-        diff_j = diff_j[:, :-1]
-        diff = diff[:, :-1]
+                diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
+                diff_ox_i = torch.where(r_i==0 , (diff_i-(self.token_num+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
+                diff_ox_j = torch.where(r_j==0 , (diff_j-(self.token_num+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
+                diff_neg = torch.where(neg_r==1 , (diff-(self.token_num+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
 
-        if self.token_num < 1000:
-            boundaries = torch.linspace(0, 1, steps=self.token_num+1)
-            diff = torch.bucketize(diff, boundaries)
-            diff_i = torch.bucketize(diff_i, boundaries)
-            diff_j = torch.bucketize(diff_j, boundaries)
+            else:
+                diff = diff * 100
+                diff_i = diff_i * 100
+                diff_j = diff_j * 100
 
-            diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
-            diff_ox_i = torch.where(r_i==0 , (diff_i-(self.token_num+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
-            diff_ox_j = torch.where(r_j==0 , (diff_j-(self.token_num+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
-            diff_neg = torch.where(neg_r==1 , (diff-(self.token_num+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
-
+                diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
+                diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
+                diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
+                diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
         else:
-            diff = diff * 100
-            diff_i = diff_i * 100
-            diff_j = diff_j * 100
-
-            diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
-            diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
-            diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
-            diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
+            q, r, qry, pos, diff = batch["skills"][:, :-1], batch["responses"][:, :-1], batch["skills"][:, 1:], batch["position"][:, :-1], batch["sdiff"][:, :-1]
+            if self.token_num < 1000:
+                boundaries = torch.linspace(0, 1, steps=self.token_num+1)
+                diff = torch.bucketize(diff, boundaries)
+                diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
+            else:
+                diff = diff * 100
+                diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
 
         qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
 
