@@ -82,20 +82,36 @@ class CLSAKT(Module):
 
     def forward(self, batch):
         # augmented q_i, augmented q_j and original q
-        q_i, q_j, q = batch["skills"][0][:, :-1], batch["skills"][1][:, :-1], batch["skills"][2][:, :-1]
-        
+        q_i, q_j, q = batch["skills"]
+        q_i = q_i[:, :-1]
+        q_j = q_j[:, :-1]
+        q = q[:, :-1]
+
         # augmented r_i, augmented r_j and original r
-        r_i, r_j, r, neg_r = batch["responses"][0][:, :-1], batch["responses"][1][:, :-1], batch["responses"][2][:, :-1], batch["responses"][3][:, :-1]
+        r_i, r_j, r, neg_r = batch["responses"]
+        r_i = r_i[:, :-1]
+        r_j = r_j[:, :-1]
+        r = r[:, :-1]
+        neg_r = neg_r[:, :-1]
 
         # augmented qry_i, augmented qry_j and original qry
-        qry_i, qry_j, qry = batch["skills"][0][:, 1:], batch["skills"][1][:, 1:], batch["skills"][2][:, 1:]
+        qry_i, qry_j, qry = batch["skills"]
+        qry_i = qry_i[:, :-1]
+        qry_j = qry_j[:, :-1]
+        qry = qry[:, :-1]
 
         # augmented pos_i, augmented pos_j and original pos
-        pos_i, pos_j, pos = batch["position"][0][:, :-1], batch["position"][1][:, :-1], batch["position"][2][:, :-1]
+        pos_i, pos_j, pos = batch["position"]
+        pos_i = pos_i[:, :-1]
+        pos_j = pos_j[:, :-1]
+        pos = pos[:, :-1]
 
         # augmented diff_i, augmented diff_j and original diff
-        diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
-        
+        diff_i, diff_j, diff = batch["sdiff"]
+        diff_i = diff_i[:, :-1]
+        diff_j = diff_j[:, :-1]
+        diff = diff[:, :-1]
+
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)
             diff = torch.bucketize(diff, boundaries)
