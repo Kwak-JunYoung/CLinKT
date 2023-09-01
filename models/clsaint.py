@@ -186,7 +186,7 @@ class Encoder_block(nn.Module):
                 self.exercise_embed = Embedding.from_pretrained(embs)
                 self.linear = Linear(pretrain_dim, dim_model)
         if total_cat > 0:
-            self.emb_cat = nn.Embedding(total_cat, embedding_dim = dim_model)
+            self.emb_cat = nn.Embedding(total_cat + 2, embedding_dim = dim_model)
         # self.embd_pos   = nn.Embedding(seq_len, embedding_dim = dim_model)                  #positional embedding
 
         self.multi_en = MultiheadAttention(d_model = dim_model, h = heads_en, dropout = dropout)
