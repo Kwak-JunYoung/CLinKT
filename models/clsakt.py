@@ -166,24 +166,27 @@ class CLSAKT(Module):
         return out_dict
 
     def loss(self, feed_dict, out_dict):
-        pred_i = out_dict["pred_i"].flatten()
-        pred_j = out_dict["pred_j"].flatten()
         pred = out_dict["pred"].flatten()
-
-        true_i = out_dict["true_i"].flatten()
-        true_j = out_dict["true_j"].flatten()
         true = out_dict["true"].flatten()
-
-        mask_i = true_i > -1
-        loss_i = self.loss_fn(pred_i[mask_i], true_i[mask_i])
-
-        mask_j = true_j > -1
-        loss_j = self.loss_fn(pred_j[mask_j], true_j[mask_j])
-
         mask = true > -1
         loss = self.loss_fn(pred[mask], true[mask])
 
-        final_loss = loss + loss_i + loss_j
+        final_loss = loss
+
+        if self.training:
+            pred_i = out_dict["pred_i"].flatten()
+            pred_j = out_dict["pred_j"].flatten()
+            
+            true_i = out_dict["true_i"].flatten()
+            true_j = out_dict["true_j"].flatten()
+
+            mask_i = true_i > -1
+            loss_i = self.loss_fn(pred_i[mask_i], true_i[mask_i])
+
+            mask_j = true_j > -1
+            loss_j = self.loss_fn(pred_j[mask_j], true_j[mask_j])
+
+            final_loss += (loss_i + loss_j)
 
         return final_loss , len(pred[mask]), true[mask].sum().item()
 
