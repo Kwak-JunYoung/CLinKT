@@ -10,7 +10,7 @@ from .rpe import SinusoidalPositionalEmbeddings
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class CLSAINT(nn.Module):
-    def __init__(self, device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, num_blocks, dropout, de_type="none"):
+    def __init__(self, device, num_skills, num_questions, seq_len, **kwargs):
         super().__init__()
         # print(f"num_questions: {num_questions}, num_skills: {num_skills}")
         if num_questions == num_skills and num_questions == 0:
@@ -18,6 +18,12 @@ class CLSAINT(nn.Module):
         self.num_questions = num_questions
         self.num_skills = num_skills
         self.model_name = "saint"
+        
+        embedding_size = kwargs["embedding_size"]
+        num_attn_heads = kwargs["num_attn_heads"]
+        dropout = kwargs["dropout"]
+        de_type = kwargs["de_type"]
+        num_blocks = kwargs["num_blocks"]
 
         # Number of encoders and decoders
         self.num_en = num_blocks
