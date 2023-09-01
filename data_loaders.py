@@ -133,8 +133,6 @@ class SimCLRDatasetWrapper(Dataset):
             attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.long)
             attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.long)
 
-            self.position[index, -len(s) :] = torch.arange(1, len(s)+1, dtype=torch.long)
-
             ret = {
                 "questions": (aug_q_seq_1, aug_q_seq_2, q_seq),
                 "skills": (aug_s_seq_1, aug_s_seq_2, s_seq),
