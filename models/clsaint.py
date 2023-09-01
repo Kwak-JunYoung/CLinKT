@@ -6,105 +6,164 @@ from .modules import transformer_FFN, get_clones, ut_mask, pos_encode, Multihead
 from torch.nn import Embedding, Linear
 from IPython import embed 
 from .rpe import SinusoidalPositionalEmbeddings 
-from .saint import SAINT
+
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-class CLSAINT(SAINT):
-    def __init__(self, *args, **kwargs):
-        super(CLSAINT, self).__init__(*args, kwargs["embedding_size"], kwargs["num_attn_heads"], kwargs["num_blocks"], kwargs["dropout"], kwargs["de_type"])
-        self.args = kwargs
-        self.hidden_size = self.args["hidden_size"]
+class SAINT(nn.Module):
+    def __init__(self, device, num_skills, num_questions, seq_len, embedding_size, num_attn_heads, num_blocks, dropout, de_type="none"):
+        super().__init__()
+        # print(f"num_questions: {num_questions}, num_skills: {num_skills}")
+        if num_questions == num_skills and num_questions == 0:
+            assert num_questions != 0
+        self.num_questions = num_questions
+        self.num_skills = num_skills
+        self.model_name = "saint"
 
-        self.kq_same = self.args["kq_same"]
-        self.final_fc_dim = self.args["final_fc_dim"]
-        self.d_ff = self.args["d_ff"]
+        # Number of encoders and decoders
+        self.num_en = num_blocks
+        self.num_de = num_blocks
 
-        self.reg_cl = self.args["reg_cl"]
-        self.negative_prob = self.args["negative_prob"]
-        self.hard_negative_weight = self.args["hard_negative_weight"]
-        self.only_rp = self.args["only_rp"]
-        self.choose_cl = self.args["choose_cl"]        
+        # Embedding layers
+        self.embd_pos = nn.Embedding(seq_len, embedding_dim = embedding_size) 
+        # self.embd_pos = Parameter(torch.Tensor(seq_len-1, embedding_size))
+        # kaiming_normal_(self.embd_pos)
+        self.device = device
+        
+        self.de = de_type.split('_')[0]
+        self.token_num = int(de_type.split('_')[1])
 
-        self.contrastive_loss = torch.nn.CrossEntropyLoss(reduction="mean")
-    
-    def forward(self, feed_dict):
-        in_ex = feed_dict["questions"]
-        in_cat = feed_dict["skills"]
-        in_res = feed_dict["responses"][:, :-1]
-        diff = feed_dict["sdiff"][:, :-1]
+        if self.de in ["sde", "lsde"]:
+            diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(2*(self.token_num+1), embedding_size)).to(device)
+            self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
+            rotary = "none"
+        elif self.de in ["rde", "lrde"]:
+            rotary = "qkv"
+        else: 
+            rotary = "none"
+            
+        self.encoder = get_clones(Encoder_block(device, embedding_size, num_attn_heads, num_questions, num_skills, seq_len, dropout), self.num_en)
+        self.decoder = get_clones(Decoder_block(device, embedding_size, num_attn_heads, seq_len, dropout, rotary), self.num_de)
+
+        #response embedding, include a start token
+        self.embd_res = nn.Embedding(2+1, embedding_dim = embedding_size)
+
+        self.dropout = Dropout(dropout)
+        self.out = nn.Linear(in_features=embedding_size, out_features=1)
+        self.loss_fn = BCELoss(reduction="mean")
+
+    # Position encoding
+    def get_in_pos(self, in_ex, in_cat):
 
         if self.num_questions > 0:
             in_pos = pos_encode(self.device, in_ex.shape[1])
         else:
             in_pos = pos_encode(self.device, in_cat.shape[1])
-        in_pos = self.embd_pos(in_pos)
-        # in_pos = self.embd_pos.unsqueeze(0)
-        ## pass through each of the encoder blocks in sequence
-        first_block = True
+
+        in_pos = self.embd_pos(in_pos)        
+
+        return in_pos
+
+    # Common forward function for both training and inference
+    def common_forward(self, in_ex, in_cat, in_res, diff):
+        in_pos = self.get_in_pos(self, in_ex, in_cat)       
+
         for i in range(self.num_en):
-            if i >= 1:
-                first_block = False
-            in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=first_block)
+            in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=(i < 1))
             in_cat = in_ex
-            
-        ## pass through each decoder blocks in sequence
+        
         start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(self.device)
         in_res = in_res * (in_res > -1).long()
         in_res = torch.cat((start_token, in_res), dim=-1)
-        r = in_res
+
         diff_token = torch.tensor([[0]]).repeat(in_res.shape[0], 1).to(self.device)
         diff = torch.cat((diff_token, diff), dim=-1)
-        first_block = True
-        
+
         if self.token_num < 1000:
             boundaries = torch.linspace(0, 1, steps=self.token_num+1)                
             diff = torch.bucketize(diff, boundaries)
-            diff_ox = torch.where(r==0 , diff-(self.token_num+1), diff)  
+            diff_ox = torch.where(in_res==0 , diff-(self.token_num+1), diff)  
         else:
             diff = diff * 100
-            diff_ox = torch.where(r==0 , diff-(100+1), diff)
-            
-        ## todo create a positional encoding (two options numeric, sine)
-        #combining the embedings
-        out = self.embd_res(in_res) + in_pos                         # (b,n,d)
-        if self.de in ["sde", "lsde"]:
-            diffx = (self.token_num+1) + diff 
-            diffo = diff
-            diffox = torch.where(r == 0 ,diffo, diffx)
-            demb = self.diff_emb(diffox).float()
-            out += demb
-        
-        for i in range(self.num_de):
-            if i>0 and self.de == "lsde": out += demb 
-            if i>0 and self.de == "rde": diff_ox = None
-            out = self.decoder[i](out, en_out=in_ex, diff=diff_ox)
-        
-        ## Output layer
+            diff_ox = torch.where(in_res==0 , diff-(100+1), diff)
 
-        res = self.out(self.dropout(out))
-        res = torch.sigmoid(res).squeeze(-1)
-        out_dict = {
-            "pred": res[:, 1:],
-            "true": feed_dict["responses"][:, 1:].float(),
-        }
+        out = self.embd_res(in_res) + in_pos
+
+        for i in range(self.num_de):
+            out = self.decoder[i](out, en_out=in_ex, diff=diff_ox)
+
+        return out
+
+    # Training forward function
+    def forward(self, batch):
+        if self.training:
+            in_ex_i, in_ex_j, in_ex = batch["questions"]
+            in_cat_i, in_cat_j, in_cat = batch["skills"]
+            in_res_i, in_res_j, in_res = batch["responses"][:, :-1]
+            diff_i, diff_j, diff = batch["sdiff"][:, :-1]
+            
+            out_i = self.common_forward(in_ex_i, in_cat_i, in_res_i, diff_i)
+            out_j = self.common_forward(in_ex_j, in_cat_j, in_res_j, diff_j)
+            out = self.common_forward(in_ex, in_cat, in_res, diff)
+
+            res = self.out(self.dropout(out))
+            res = torch.sigmoid(res).squeeze(-1)
+
+            res_i = self.out(self.dropout(out_i))
+            res_i = torch.sigmoid(res_i).squeeze(-1)
+
+            res_j = self.out(self.dropout(out_j))
+            res_j = torch.sigmoid(res_j).squeeze(-1)
+            
+            out_dict = {
+                "pred": res[:, 1:],
+                "pred_i": res_i[:, 1:],
+                "pred_j": res_j[:, 1:],
+                "true_i": batch["responses"][0][:, 1:].float(),
+                "true_j": batch["responses"][1][:, 1:].float(),
+                "true": batch["responses"][2][:, 1:].float(),
+            }
+
+        else:
+            in_ex = batch["questions"]
+            in_cat = batch["skills"]
+            in_res = batch["responses"][:, :-1]
+            diff = batch["sdiff"][:, :-1]
+
+            out = self.common_forward(in_ex, in_cat, in_res, diff)
+
+            res = self.out(self.dropout(out))
+            res = torch.sigmoid(res).squeeze(-1)
+
+            out_dict = {
+                "pred": res[:, 1:],
+                "true": batch["responses"][:, 1:].float(),
+            }
+            
         return out_dict
 
-    def loss(self, feed_dict, out_dict, positive_pairs, negative_pairs):
-        # ... (other loss calculations remain the same)
+    def loss(self, feed_dict, out_dict):
         pred = out_dict["pred"].flatten()
         true = out_dict["true"].flatten()
         mask = true > -1
-        knowledge_tracing_loss = self.loss_fn(pred[mask], true[mask])
+        loss = self.loss_fn(pred[mask], true[mask])
+        final_loss = loss
 
-        # Calculate contrastive loss
-        embeddings = self.calculate_embeddings(feed_dict)  # Implement a method to get embeddings
-        contrastive_loss = self.contrastive_loss(embeddings, positive_pairs, negative_pairs)
-        
-        # Combine losses
-        total_loss = knowledge_tracing_loss + contrastive_loss
-        
-        return total_loss, len(pred[mask]), true[mask].sum().item()
+        if self.training:
+            pred_i = out_dict["pred_i"].flatten()
+            pred_j = out_dict["pred_j"].flatten()
+            
+            true_i = out_dict["true_i"].flatten()
+            true_j = out_dict["true_j"].flatten()
 
+            mask_i = true_i > -1
+            loss_i = self.loss_fn(pred_i[mask_i], true_i[mask_i])
+
+            mask_j = true_j > -1
+            loss_j = self.loss_fn(pred_j[mask_j], true_j[mask_j])
+
+            final_loss += (loss_i + loss_j)
+                
+        return final_loss , len(pred[mask]), true[mask].sum().item()
 
 class Encoder_block(nn.Module):
     """
