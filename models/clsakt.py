@@ -167,7 +167,7 @@ class CLSAKT(Module):
 
             out_dict = {
                 "pred": p,
-                "true": batch["responses"][2][:, 1:].float(),
+                "true": batch["responses"][:, 1:].float(),
             }
 
         return out_dict
