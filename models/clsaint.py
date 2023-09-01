@@ -105,7 +105,7 @@ class CLSAINT(nn.Module):
             in_ex_i, in_ex_j, in_ex = batch["questions"]
             in_cat_i, in_cat_j, in_cat = batch["skills"]
             in_res_i, in_res_j, in_res, neg_in_res = batch["responses"][0][:, :-1], batch["responses"][1][:, :-1], batch["responses"][2][:, :-1], batch["responses"][3][:, :-1]
-            diff_i, diff_j, diff = batch["sdiff"][:, :-1]
+            diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]
             
             out_i = self.common_forward(in_ex_i, in_cat_i, in_res_i, diff_i)
             out_j = self.common_forward(in_ex_j, in_cat_j, in_res_j, diff_j)
