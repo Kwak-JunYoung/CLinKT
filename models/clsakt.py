@@ -8,6 +8,8 @@ if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 from IPython import embed
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 class CLSAKT(Module):
     def __init__(
@@ -37,6 +39,7 @@ class CLSAKT(Module):
         self.loss_fn = BCELoss(reduction="mean")
         self.cl_loss_fn = torch.nn.CrossEntropyLoss(reduction="mean")
 
+        num_skills+=2
         # num_questions, seq_len, embedding_size, num_attn_heads, dropout, emb_path="")
         self.interaction_emb = Embedding(num_skills * 2, embedding_size, padding_idx=0)
         self.exercise_emb = Embedding(num_skills, embedding_size, padding_idx=0)
@@ -79,7 +82,6 @@ class CLSAKT(Module):
 
     def forward(self, batch):
         # augmented q_i, augmented q_j and original q
-
         q_i, q_j, q = batch["skills"][0][:, :-1], batch["skills"][1][:, :-1], batch["skills"][2][:, :-1]
         
         # augmented r_i, augmented r_j and original r
@@ -114,29 +116,37 @@ class CLSAKT(Module):
             diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
             diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
             diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
-            
+
         qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
+
+        for i in range(self.num_blocks): #sakt's num_blocks = 1
+            xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
+            
+        p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)    
+
         qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
+
+        for i in range(self.num_blocks): #sakt's num_blocks = 1
+          xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox_i)
+
+        p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
+
         qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
         
         for i in range(self.num_blocks): #sakt's num_blocks = 1
-            xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
-            xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox_i)
-            xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox_j)
-            
-            
-        p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
+          xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox_j)
+
         p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
-        p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)
 
         out_dict = {
             "pred_i": p_i,
             "pred_j": p_j,
             "pred": p,
-            "true_i": batch["responses"].float(),
-            "true_j": batch["responses"].float(),
-            "true": batch["responses"].float(),
+            "true_i": batch["responses"][0][:, 1:].float(),
+            "true_j": batch["responses"][1][:, 1:].float(),
+            "true": batch["responses"][2][:, 1:].float(),
         }
+
         return out_dict
 
     def loss(self, feed_dict, out_dict):
