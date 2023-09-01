@@ -132,6 +132,13 @@ class CLSAKT(Module):
 
             p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
 
+            qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
+
+            for i in range(self.num_blocks): #sakt's num_blocks = 1
+                xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
+                
+            p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)    
+
             out_dict = {
                 "pred_i": p_i,
                 "pred_j": p_j,
