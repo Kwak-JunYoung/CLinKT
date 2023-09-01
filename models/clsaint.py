@@ -59,7 +59,7 @@ class CLSAINT(nn.Module):
 
     # Common forward function for both training and inference
     def common_forward(self, in_ex, in_cat, in_res, diff):
-        
+
         if self.num_questions > 0:
             in_pos = pos_encode(self.device, in_ex.shape[1])
         else:
@@ -180,7 +180,7 @@ class Encoder_block(nn.Module):
         self.device = device
         if total_ex > 0:
             if emb_path == "":
-                self.embd_ex = nn.Embedding(total_ex, embedding_dim = dim_model)                   # embedings  q,k,v = E = exercise ID embedding, category embedding, and positionembedding.
+                self.embd_ex = nn.Embedding(total_ex + 2, embedding_dim = dim_model)                   # embedings  q,k,v = E = exercise ID embedding, category embedding, and positionembedding.
             else:
                 embs = pd.read_pickle(emb_path)
                 self.exercise_embed = Embedding.from_pretrained(embs)
