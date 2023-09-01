@@ -57,21 +57,15 @@ class CLSAINT(nn.Module):
         self.out = nn.Linear(in_features=embedding_size, out_features=1)
         self.loss_fn = BCELoss(reduction="mean")
 
-    # Position encoding
-    def get_in_pos(self, in_ex, in_cat):
-
+    # Common forward function for both training and inference
+    def common_forward(self, in_ex, in_cat, in_res, diff):
+        
         if self.num_questions > 0:
             in_pos = pos_encode(self.device, in_ex.shape[1])
         else:
             in_pos = pos_encode(self.device, in_cat.shape[1])
 
         in_pos = self.embd_pos(in_pos)        
-
-        return in_pos
-
-    # Common forward function for both training and inference
-    def common_forward(self, in_ex, in_cat, in_res, diff):
-        in_pos = self.get_in_pos(self, in_ex, in_cat)       
 
         for i in range(self.num_en):
             in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=(i < 1))
