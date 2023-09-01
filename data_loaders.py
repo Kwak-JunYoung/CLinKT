@@ -63,6 +63,7 @@ class SimCLRDatasetWrapper(Dataset):
                 "responses": r_seq,
                 "attention_mask": attention_mask,
                 "sdiff": original_data["sdiff"],
+                "position": position
             }
 
         else:
