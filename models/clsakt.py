@@ -117,6 +117,30 @@ class CLSAKT(Module):
                 diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
                 diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
                 diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
+
+            qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
+
+            for i in range(self.num_blocks): #sakt's num_blocks = 1
+                xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox_i)
+
+            p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
+
+            qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
+            
+            for i in range(self.num_blocks): #sakt's num_blocks = 1
+                xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox_j)
+
+            p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
+
+            out_dict = {
+                "pred_i": p_i,
+                "pred_j": p_j,
+                "pred": p,
+                "true_i": batch["responses"][0][:, 1:].float(),
+                "true_j": batch["responses"][1][:, 1:].float(),
+                "true": batch["responses"][2][:, 1:].float(),
+            }
+
         else:
             q, r, qry, pos, diff = batch["skills"][:, :-1], batch["responses"][:, :-1], batch["skills"][:, 1:], batch["position"][:, :-1], batch["sdiff"][:, :-1]
             if self.token_num < 1000:
@@ -127,35 +151,17 @@ class CLSAKT(Module):
                 diff = diff * 100
                 diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
 
-        qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
+            qshftemb, xemb, demb = self.base_emb(q, r, qry, pos, diff)
 
-        for i in range(self.num_blocks): #sakt's num_blocks = 1
-            xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
-            
-        p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)    
+            for i in range(self.num_blocks): #sakt's num_blocks = 1
+                xemb = self.blocks[i](qshftemb, xemb, xemb, diff_ox)
+                
+            p = torch.sigmoid(self.pred(self.dropout_layer(xemb))).squeeze(-1)    
 
-        qshftemb_i, xemb_i, demb_i = self.base_emb(q_i, r_i, qry_i, pos_i, diff_i)
-
-        for i in range(self.num_blocks): #sakt's num_blocks = 1
-          xemb_i = self.blocks[i](qshftemb_i, xemb_i, xemb_i, diff_ox_i)
-
-        p_i = torch.sigmoid(self.pred(self.dropout_layer(xemb_i))).squeeze(-1)
-
-        qshftemb_j, xemb_j, demb_j = self.base_emb(q_j, r_j, qry_j, pos_j, diff_j)
-        
-        for i in range(self.num_blocks): #sakt's num_blocks = 1
-          xemb_j = self.blocks[i](qshftemb_j, xemb_j, xemb_j, diff_ox_j)
-
-        p_j = torch.sigmoid(self.pred(self.dropout_layer(xemb_j))).squeeze(-1)
-
-        out_dict = {
-            "pred_i": p_i,
-            "pred_j": p_j,
-            "pred": p,
-            "true_i": batch["responses"][0][:, 1:].float(),
-            "true_j": batch["responses"][1][:, 1:].float(),
-            "true": batch["responses"][2][:, 1:].float(),
-        }
+            out_dict = {
+                "pred": p,
+                "true": batch["responses"][2][:, 1:].float(),
+            }
 
         return out_dict
 
