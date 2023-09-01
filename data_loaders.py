@@ -43,7 +43,7 @@ class SimCLRDatasetWrapper(Dataset):
         self.s_mask_id = self.num_skills + 1
         self.easier_skills = self.ds.easier_skills
         self.harder_skills = self.ds.harder_skills
-        self.position = torch.full((self.num_questions, self.seq_len), 0, dtype=torch.long)        
+        self.position = self.ds.position
 
     def __len__(self):
         return len(self.ds)
@@ -54,6 +54,7 @@ class SimCLRDatasetWrapper(Dataset):
         s_seq = original_data["skills"]
         r_seq = original_data["responses"]
         attention_mask = original_data["attention_mask"]
+        position = original_data["position"]
 
         if self.eval_mode:
             return {
@@ -131,6 +132,9 @@ class SimCLRDatasetWrapper(Dataset):
             negative_r_seq = torch.tensor(negative_r_seq, dtype=torch.long)
             attention_mask_1 = torch.tensor(attention_mask_1, dtype=torch.long)
             attention_mask_2 = torch.tensor(attention_mask_2, dtype=torch.long)
+
+            self.position[index, -len(s) :] = torch.arange(1, len(s)+1, dtype=torch.long)
+
             ret = {
                 "questions": (aug_q_seq_1, aug_q_seq_2, q_seq),
                 "skills": (aug_s_seq_1, aug_s_seq_2, s_seq),
@@ -138,8 +142,7 @@ class SimCLRDatasetWrapper(Dataset):
                 "attention_mask": (attention_mask_1, attention_mask_2, attention_mask),
                 "qdiff": (aug_qd_seq_1, aug_qd_seq_2, original_data["qdiff"]),
                 "sdiff": (aug_sd_seq_1, aug_sd_seq_2, original_data["sdiff"]),
-                "position": (self.position[index],self.position[index],self.position[index])
-
+                "position": (position, position, position)
             }
             return ret
 
