@@ -52,7 +52,6 @@ class AKT(Module):
         self.num_blocks = num_blocks
         self.seq_len = seq_len
         self.kq_same = kq_same
-        print("kq_same", kq_same)
         self.model_type = model_type
         self.num_attn_heads = num_attn_heads
         self.final_fc_dim = final_fc_dim
