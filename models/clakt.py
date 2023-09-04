@@ -72,7 +72,7 @@ class CLAKT(Module):
                 2 * self.num_skills, self.embedding_size, padding_idx=0)  # f_{(c_t, r_t)} or h_{r_t}
 
         self.q_embed = Embedding(
-            self.num_skills, self.embedding_size, padding_idx=0)  # c_{c_t}
+            self.num_skills + 2, self.embedding_size, padding_idx=0)  # c_{c_t}
 
         if self.separate_qr:
             self.qr_embed = Embedding(
