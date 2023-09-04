@@ -49,15 +49,15 @@ def get_model_info(device, num_skills, num_questions, seq_len, diff_as_loss_weig
     if model_name == "akt":
         model_config = config.akt_config
         model = AKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)
+    elif args.model_name == "clakt":
+        model_config = config.clakt_config 
+        model = CLAKT(device, num_skills, num_questions, seq_len, diff_as_loss_weight, **model_config)        
     elif args.model_name == "sakt":
         model_config = config.sakt_config
         model = SAKT(device, num_skills, num_questions, seq_len, **model_config)
     elif args.model_name == "saint":
         model_config = config.saint_config
         model = SAINT(device, num_skills, num_questions, seq_len, **model_config)
-    elif args.model_name == "clakt":
-        model_config = config.clakt_config 
-        model = CLAKT(device, num_skills, num_questions, seq_len, **model_config)
     elif args.model_name == "clsakt":
         model_config = config.clsakt_config
         model = CLSAKT(device, num_skills, num_questions, seq_len, **model_config)
