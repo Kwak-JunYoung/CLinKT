@@ -67,7 +67,7 @@ class CLAKT(Module):
             self.difficult_param = Embedding(
                 self.num_questions, 1, padding_idx=0)  # /mu_{q_t} parameter
             self.q_embed_diff = Embedding(
-                self.num_skills, self.embedding_size, padding_idx=0)  # d_{c_t}
+                self.num_skills + 2, self.embedding_size, padding_idx=0)  # d_{c_t}
             self.qr_embed_diff = Embedding(
                 2 * self.num_skills, self.embedding_size, padding_idx=0)  # f_{(c_t, r_t)} or h_{r_t}
 
