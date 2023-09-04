@@ -18,6 +18,7 @@ class CLAKT(Module):
         num_skills,
         num_questions,
         seq_len,
+        diff_as_loss_weight,
         **kwargs
     ):
         super().__init__()
@@ -45,7 +46,6 @@ class CLAKT(Module):
         reg_l = kwargs["reg_l"]
         dropout = kwargs["dropout"]
         separate_qr = kwargs["separate_qr"]
-        diff_as_loss_weight = kwargs["diff_as_loss_weight"]
         de_type = kwargs["de_type"]
 
         self.num_skills = num_skills
