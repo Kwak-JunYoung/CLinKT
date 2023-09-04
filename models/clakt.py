@@ -65,7 +65,7 @@ class CLAKT(Module):
 
         if self.num_questions > 0:
             self.difficult_param = Embedding(
-                self.num_questions, 1, padding_idx=0)  # /mu_{q_t} parameter
+                self.num_questions + 2, 1, padding_idx=0)  # /mu_{q_t} parameter
             self.q_embed_diff = Embedding(
                 self.num_skills + 2, self.embedding_size, padding_idx=0)  # d_{c_t}
             self.qr_embed_diff = Embedding(
