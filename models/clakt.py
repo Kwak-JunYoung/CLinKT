@@ -18,20 +18,9 @@ class CLAKT(Module):
         num_skills,
         num_questions,
         seq_len,
-        diff_as_loss_weight,
-        embedding_size,
-        num_blocks,
-        kq_same,
-        model_type="akt",
-        num_attn_heads=8,
-        final_fc_dim=512,
-        d_ff=2048,
-        reg_l=1e-5,
-        dropout=0.2,
-        de_type="none",
-        separate_qr=False,
+        **kwargs
     ):
-        super(AKT, self).__init__()
+        super().__init__()
 
         """
         params:
@@ -46,6 +35,21 @@ class CLAKT(Module):
             d_ff: dimension for fully connected net inside the basic block
             
         """
+        embedding_size = kwargs["embedding_size"]
+        num_blocks = kwargs["num_blocks"]
+        seq_len = kwargs["seq_len"]
+        kq_same = kwargs["kq_same"]
+        model_type = kwargs["model_type"]
+        num_attn_heads = kwargs["num_attn_heads"]
+
+        final_fc_dim = kwargs["final_fc_dim"]
+        d_ff = kwargs["d_ff"]
+        reg_l = kwargs["reg_l"]
+        dropout = kwargs["dropout"]
+        separate_qr = kwargs["separate_qr"]
+        diff_as_loss_weight = kwargs["diff_as_loss_weight"]
+        de_type = kwargs["de_type"]
+        
         self.num_skills = num_skills
         self.num_questions = num_questions
         self.embedding_size = embedding_size
