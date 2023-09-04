@@ -36,7 +36,6 @@ class CLAKT(Module):
             
         """
         num_blocks = kwargs["num_blocks"]
-        seq_len = kwargs["seq_len"]
         kq_same = kwargs["kq_same"]
         model_type = kwargs["model_type"]
         num_attn_heads = kwargs["num_attn_heads"]
@@ -53,7 +52,6 @@ class CLAKT(Module):
         self.num_questions = num_questions
         self.embedding_size = kwargs["embedding_size"]
         self.num_blocks = num_blocks
-        self.seq_len = seq_len
         self.kq_same = kq_same
         self.model_type = model_type
         self.num_attn_heads = num_attn_heads
