@@ -11,7 +11,7 @@ if torch.cuda.is_available():
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 
-class AKT(Module):
+class CLAKT(Module):
     def __init__(
         self,
         device,
