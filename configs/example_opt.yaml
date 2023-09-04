@@ -68,6 +68,7 @@ akt_config:
 
 clakt_config:
   ednet:
+    model_type: "akt"
     embedding_size: 64
     hidden_size: 64
     num_blocks: 2
