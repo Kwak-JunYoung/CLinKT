@@ -469,6 +469,8 @@ if __name__ == "__main__":
         cfg.clsaint_config.choose_cl = args.choose_cl           
     elif args.model_name == "akt":
         cfg.akt_config = cfg.akt_config[cfg.data_name]
+    elif args.model_name == "clakt":
+        cfg.clakt_config = cfg.clakt_config[cfg.data_name]
     elif args.model_name == "rdemkt":
         cfg.rdemkt_config = cfg.rdemkt_config[cfg.data_name]
         cfg.rdemkt_config.only_rp = args.only_rp

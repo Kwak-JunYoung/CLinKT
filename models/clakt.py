@@ -35,7 +35,6 @@ class CLAKT(Module):
             d_ff: dimension for fully connected net inside the basic block
             
         """
-        embedding_size = kwargs["embedding_size"]
         num_blocks = kwargs["num_blocks"]
         seq_len = kwargs["seq_len"]
         kq_same = kwargs["kq_same"]
@@ -49,10 +48,10 @@ class CLAKT(Module):
         separate_qr = kwargs["separate_qr"]
         diff_as_loss_weight = kwargs["diff_as_loss_weight"]
         de_type = kwargs["de_type"]
-        
+
         self.num_skills = num_skills
         self.num_questions = num_questions
-        self.embedding_size = embedding_size
+        self.embedding_size = kwargs["embedding_size"]
         self.num_blocks = num_blocks
         self.seq_len = seq_len
         self.kq_same = kq_same
@@ -88,7 +87,7 @@ class CLAKT(Module):
         self.token_num = int(de_type.split('_')[1])
         if self.de in ["sde", "lsde"]:
             diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(
-                2*(self.token_num+1), embedding_size)).to(device)
+                2*(self.token_num+1), self.embedding_size)).to(device)
             self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
             rotary = "none"
         elif self.de in ["rde", "lrde"]:
