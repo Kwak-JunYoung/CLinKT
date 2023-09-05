@@ -64,6 +64,8 @@ class CLSAKT(Module):
         self.dropout_layer = Dropout(dropout)
         self.pred = Linear(self.embedding_size, 1)
 
+        self.sim = Similarity(temp=self.args["temp"])
+
     def base_emb(self, q, r, qry, pos, diff):
         masked_responses = r * (r > -1).long()
         x = q + self.num_skills * masked_responses
