@@ -1,6 +1,6 @@
 import torch
 
-from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss
+from torch.nn import Module, Embedding, Linear, LayerNorm, Dropout, BCELoss, CosineSimilarity
 from .modules import transformer_FFN, pos_encode, ut_mask, get_clones, MultiheadAttention
 from .rpe import SinusoidalPositionalEmbeddings 
 
@@ -223,3 +223,16 @@ class Blocks(Module):
         emb = self.FFN_dropout(emb)
         emb = self.FFN_layer_norm(attn_emb + emb)
         return emb
+
+class Similarity(Module):
+    """
+    Dot product or cosine similarity
+    """
+
+    def __init__(self, temp):
+        super().__init__()
+        self.temp = temp
+        self.cos = CosineSimilarity(dim=-1)
+
+    def forward(self, x, y):
+        return self.cos(x, y) / self.temp
