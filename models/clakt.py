@@ -69,7 +69,7 @@ class CLAKT(Module):
             self.q_embed_diff = Embedding(
                 self.num_skills + 2, self.embedding_size, padding_idx=0)  # d_{c_t}
             self.qr_embed_diff = Embedding(
-                2 * self.num_skills, self.embedding_size, padding_idx=0)  # f_{(c_t, r_t)} or h_{r_t}
+                2 * (self.num_skills + 2), self.embedding_size, padding_idx=0)  # f_{(c_t, r_t)} or h_{r_t}
 
         self.q_embed = Embedding(
             self.num_skills + 2, self.embedding_size, padding_idx=0)  # c_{c_t}
@@ -83,15 +83,7 @@ class CLAKT(Module):
 
         self.de = de_type.split('_')[0]
         self.token_num = int(de_type.split('_')[1])
-        if self.de in ["sde", "lsde"]:
-            diff_vec = torch.from_numpy(SinusoidalPositionalEmbeddings(
-                2*(self.token_num+1), self.embedding_size)).to(device)
-            self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=True)
-            rotary = "none"
-        elif self.de in ["rde", "lrde"]:
-            rotary = "qkv"
-        else:
-            rotary = "none"
+        rotary = "none"
 
         self.model = Architecture(
             n_question=self.num_skills,
@@ -147,26 +139,15 @@ class CLAKT(Module):
             # augmented diff_i, augmented diff_j and original diff
             diff_i, diff_j, diff = batch["sdiff"][0][:, :-1], batch["sdiff"][1][:, :-1], batch["sdiff"][2][:, :-1]            
         
-            if self.token_num < 1000:
-                boundaries = torch.linspace(0, 1, steps=self.token_num+1)
-                diff = torch.bucketize(diff, boundaries)
-                diff_i = torch.bucketize(diff_i, boundaries)
-                diff_j = torch.bucketize(diff_j, boundaries)
+            boundaries = torch.linspace(0, 1, steps=self.token_num+1)
+            diff = torch.bucketize(diff, boundaries)
+            diff_i = torch.bucketize(diff_i, boundaries)
+            diff_j = torch.bucketize(diff_j, boundaries)
 
-                diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
-                diff_ox_i = torch.where(r_i==0 , (diff_i-(self.token_num+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
-                diff_ox_j = torch.where(r_j==0 , (diff_j-(self.token_num+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
-                diff_neg = torch.where(neg_r==1 , (diff-(self.token_num+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
-
-            else:
-                diff = diff * 100
-                diff_i = diff_i * 100
-                diff_j = diff_j * 100
-
-                diff_ox = torch.where(r==0 , (diff-(100+1)) * (r > -1).int(), diff * (r > -1).int())
-                diff_ox_i = torch.where(r_i==0 , (diff_i-(100+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
-                diff_ox_j = torch.where(r_j==0 , (diff_j-(100+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
-                diff_neg = torch.where(neg_r==1 , (diff-(100+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())    
+            diff_ox = torch.where(r==0 , (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
+            diff_ox_i = torch.where(r_i==0 , (diff_i-(self.token_num+1)) * (r_i > -1).int(), diff_i * (r_i > -1).int())
+            diff_ox_j = torch.where(r_j==0 , (diff_j-(self.token_num+1)) * (r_j > -1).int(), diff_j * (r_j > -1).int())
+            diff_neg = torch.where(neg_r==1 , (diff-(self.token_num+1)) * (neg_r > -1).int(), diff * (neg_r > -1).int())
             
             q_embed_data_i = self.q_embed(q_i)
             q_embed_data_j = self.q_embed(q_j)
@@ -216,47 +197,28 @@ class CLAKT(Module):
                     qr)
                 
                 if self.separate_qr:
+                    qr = q + self.num_skills * masked_r
+                    qr_i = q_i + self.num_skills * masked_r_i
+                    qr_j = q_j + self.num_skills * masked_r_j
+
                     qr_embed_data_i = qr_embed_data_i + pid_embed_data_i * qr_embed_diff_data_i
                     qr_embed_data_j = qr_embed_data_j + pid_embed_data_j * qr_embed_diff_data_j
                     qr_embed_data = qr_embed_data + pid_embed_data * qr_embed_diff_data
 
                 else:
-                    if self.de in ["sde", "lsde"]:
-                        diffx = (self.token_num+1) + diff * (r > -1).long()
-                        diffo = diff * (r > -1).int()
-                        diffox = torch.where(r == 0 ,diffo, diffx)
-                        demb = self.diff_emb(diffox).float()
-                        qr_embed_data += demb
+                    demb = None
+                    demb_i = None
+                    demb_j = None
 
-                        diff_x_i = (self.token_num+1) + diff_i * (r_i > -1).long()
-                        diff_o_i = diff_i * (r_i > -1).int()
-                        diff_ox_i = torch.where(r_i == 0 ,diff_o_i, diff_x_i)
-                        demb_i = self.diff_emb(diff_ox_i).float()
-                        qr_embed_data_i += demb_i
-
-                        diff_x_j = (self.token_num+1) + diff_j * (r_j > -1).long()
-                        diff_o_j = diff_j * (r_j > -1).int()
-                        diff_ox_j = torch.where(r_j == 0 ,diff_o_j, diff_x_j)
-                        demb_j = self.diff_emb(diff_ox_j).float()
-                        qr_embed_data_j += demb_j
-
-                    elif self.de in ["rde", "lrde"]:
-                        demb = None
-                        demb_i = None
-                        demb_j = None
-                    else:
-                        demb = None
-                        demb_i = None
-                        demb_j = None
-                        qr_embed_data_i = qr_embed_data_i + pid_embed_data_i * (
-                            qr_embed_diff_data_i + q_embed_diff_data_i          
-                        )
-                        qr_embed_data_j = qr_embed_data_j + pid_embed_data_j * (
-                            qr_embed_diff_data_j + q_embed_diff_data_j          
-                        )
-                        qr_embed_data = qr_embed_data + pid_embed_data * (
-                            qr_embed_diff_data + q_embed_diff_data          
-                        )             
+                    qr_embed_data_i = qr_embed_data_i + pid_embed_data_i * (
+                        qr_embed_diff_data_i + q_embed_diff_data_i          
+                    )
+                    qr_embed_data_j = qr_embed_data_j + pid_embed_data_j * (
+                        qr_embed_diff_data_j + q_embed_diff_data_j          
+                    )
+                    qr_embed_data = qr_embed_data + pid_embed_data * (
+                        qr_embed_diff_data + q_embed_diff_data          
+                    )             
 
                 c_reg_loss = torch.mean(pid_embed_data ** 2.0) * self.reg_l
                 c_reg_loss_i = torch.mean(pid_embed_data_i ** 2.0) * self.reg_l
@@ -312,7 +274,13 @@ class CLAKT(Module):
             out_dict = {
                 "pred": output[:, 1:],
                 "true": r[:, 1:].float(),
+                "pred_i": output_i[:, 1:],
+                "true_i": r_i[:, 1:].float(),
+                "pred_j": output_j[:, 1:],
+                "true_j": r_j[:, 1:].float(),
                 "c_reg_loss": c_reg_loss,
+                "c_reg_loss_i": c_reg_loss_i,
+                "c_reg_loss_j": c_reg_loss_j,
             }
 
         else: 
@@ -323,15 +291,10 @@ class CLAKT(Module):
             pid_data = batch["questions"]
             diff = batch["sdiff"]
 
-            if self.token_num < 1000:
-                boundaries = torch.linspace(0, 1, steps=self.token_num+1)
-                diff = torch.bucketize(diff, boundaries)
-                diff_ox = torch.where(
-                    r == 0, (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
-            else:
-                diff = diff * 100
-                diff_ox = torch.where(r == 0, (diff-(100+1))
-                                    * (r > -1).int(), diff * (r > -1).int())
+            boundaries = torch.linspace(0, 1, steps=self.token_num+1)
+            diff = torch.bucketize(diff, boundaries)
+            diff_ox = torch.where(
+                r == 0, (diff-(self.token_num+1)) * (r > -1).int(), diff * (r > -1).int())
 
             # c_{c_t}: [batch_size, seq_len, embedding_size]
             q_embed_data = self.q_embed(q)
@@ -361,19 +324,10 @@ class CLAKT(Module):
                     # , where e_{(c_t, r_t)} = c_{c_t} + g_{r_t}
                     # f_{(c_t, r_t)} = f_{(c_t, r_t)} + d_{c_t}
                     # e_{(c_t, r_t)} + \mu_{q_t} * (h_{r_t} + d_{c_t})
-                    if self.de in ["sde", "lsde"]:
-                        diffx = (self.token_num+1) + diff * (r > -1).long()
-                        diffo = diff * (r > -1).int()
-                        diffox = torch.where(r == 0, diffo, diffx)
-                        demb = self.diff_emb(diffox).float()
-                        qr_embed_data += demb
-                    elif self.de in ["rde", "lrde"]:
-                        demb = None
-                    else:
-                        demb = None
-                        qr_embed_data = qr_embed_data + pid_embed_data * (
-                            qr_embed_diff_data + q_embed_diff_data
-                        )
+                    demb = None
+                    qr_embed_data = qr_embed_data + pid_embed_data * (
+                        qr_embed_diff_data + q_embed_diff_data
+                    )
 
                 c_reg_loss = torch.mean(pid_embed_data ** 2.0) * self.reg_l
             else:
@@ -420,6 +374,31 @@ class CLAKT(Module):
             weight = F.softmax(
                 1-feed_dict['sdiff'][:, 1:].flatten()[mask], dim=0)
             loss = torch.sum(loss * weight)
+        
+        if self.training:
+            pred_i = out_dict["pred_i"].flatten()
+            true_i = out_dict["true_i"].flatten()
+            c_reg_loss_i = out_dict["c_reg_loss_i"]
+            mask_i = true_i > -1
+
+            loss_i = self.loss_fn(pred_i[mask_i], true_i[mask_i])
+            if self.diff_as_loss_weight:
+                weight_i = F.softmax(
+                    1-feed_dict['sdiff'][:, 1:].flatten()[mask_i], dim=0)
+                loss_i = torch.sum(loss_i * weight_i)
+
+            pred_j = out_dict["pred_j"].flatten()
+            true_j = out_dict["true_j"].flatten()
+            c_reg_loss_j = out_dict["c_reg_loss_j"]
+            mask_j = true_j > -1
+
+            loss_j = self.loss_fn(pred_j[mask_j], true_j[mask_j])
+            if self.diff_as_loss_weight:
+                weight_j = F.softmax(
+                    1-feed_dict['sdiff'][:, 1:].flatten()[mask_j], dim=0)
+                loss_j = torch.sum(loss_j * weight_j)
+            
+            loss += loss_i + loss_j + c_reg_loss_i + c_reg_loss_j
 
         return loss + c_reg_loss, len(pred[mask]), true[mask].sum().item()
 
